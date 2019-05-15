@@ -106,10 +106,10 @@ pointer_accel_profile_linear_low_dpi(struct motion_filter *filter,
 }
 
 static inline double
-calculate_acceleration_factor(struct pointer_accelerator_low_dpi *accel,
-			      const struct device_float_coords *unaccelerated,
-			      void *data,
-			      uint64_t time)
+calculate_acceleration_factor_ldpi(struct pointer_accelerator_low_dpi *accel,
+			           const struct device_float_coords *unaccelerated,
+			           void *data,
+			           uint64_t time)
 {
 	double velocity; /* units/us in device-native dpi*/
 	double accel_factor;
@@ -128,19 +128,19 @@ calculate_acceleration_factor(struct pointer_accelerator_low_dpi *accel,
 }
 
 static struct device_float_coords
-accelerator_filter_generic(struct motion_filter *filter,
-			   const struct device_float_coords *unaccelerated,
-			   void *data, uint64_t time)
+accelerator_filter_generic_ldpi(struct motion_filter *filter,
+			        const struct device_float_coords *unaccelerated,
+			        void *data, uint64_t time)
 {
 	struct pointer_accelerator_low_dpi *accel =
 		(struct pointer_accelerator_low_dpi *) filter;
 	double accel_value; /* unitless factor */
 	struct device_float_coords accelerated;
 
-	accel_value = calculate_acceleration_factor(accel,
-						    unaccelerated,
-						    data,
-						    time);
+	accel_value = calculate_acceleration_factor_ldpi(accel,
+						         unaccelerated,
+						         data,
+						         time);
 
 	accelerated.x = accel_value * unaccelerated->x;
 	accelerated.y = accel_value * unaccelerated->y;
@@ -157,19 +157,19 @@ accelerator_filter_unnormalized(struct motion_filter *filter,
 	struct normalized_coords normalized;
 
 	/* Accelerate for device units and return device units */
-	accelerated = accelerator_filter_generic(filter,
-						 unaccelerated,
-						 data,
-						 time);
+	accelerated = accelerator_filter_generic_ldpi(filter,
+						      unaccelerated,
+						      data,
+						      time);
 	normalized.x = accelerated.x;
 	normalized.y = accelerated.y;
 	return normalized;
 }
 
 static struct normalized_coords
-accelerator_filter_noop(struct motion_filter *filter,
-			const struct device_float_coords *unaccelerated,
-			void *data, uint64_t time)
+accelerator_filter_noop_ldpi(struct motion_filter *filter,
+			     const struct device_float_coords *unaccelerated,
+			     void *data, uint64_t time)
 {
 	struct pointer_accelerator_low_dpi *accel =
 		(struct pointer_accelerator_low_dpi *) filter;
@@ -178,9 +178,9 @@ accelerator_filter_noop(struct motion_filter *filter,
 }
 
 static void
-accelerator_restart(struct motion_filter *filter,
-		    void *data,
-		    uint64_t time)
+accelerator_restart_ldpi(struct motion_filter *filter,
+		         void *data,
+		         uint64_t time)
 {
 	struct pointer_accelerator_low_dpi *accel =
 		(struct pointer_accelerator_low_dpi *) filter;
@@ -189,7 +189,7 @@ accelerator_restart(struct motion_filter *filter,
 }
 
 static void
-accelerator_destroy(struct motion_filter *filter)
+accelerator_destroy_ldpi(struct motion_filter *filter)
 {
 	struct pointer_accelerator_low_dpi *accel =
 		(struct pointer_accelerator_low_dpi *) filter;
@@ -199,8 +199,8 @@ accelerator_destroy(struct motion_filter *filter)
 }
 
 static bool
-accelerator_set_speed(struct motion_filter *filter,
-		      double speed_adjustment)
+accelerator_set_speed_ldpi(struct motion_filter *filter,
+		           double speed_adjustment)
 {
 	struct pointer_accelerator_low_dpi *accel_filter =
 		(struct pointer_accelerator_low_dpi *)filter;
@@ -229,14 +229,14 @@ accelerator_set_speed(struct motion_filter *filter,
 struct motion_filter_interface accelerator_interface_low_dpi = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_unnormalized,
-	.filter_constant = accelerator_filter_noop,
-	.restart = accelerator_restart,
-	.destroy = accelerator_destroy,
-	.set_speed = accelerator_set_speed,
+	.filter_constant = accelerator_filter_noop_ldpi,
+	.restart = accelerator_restart_ldpi,
+	.destroy = accelerator_destroy_ldpi,
+	.set_speed = accelerator_set_speed_ldpi,
 };
 
 static struct pointer_accelerator_low_dpi *
-create_default_filter(int dpi, bool use_velocity_averaging)
+create_default_filter_ldpi(int dpi, bool use_velocity_averaging)
 {
 	struct pointer_accelerator_low_dpi *filter;
 
@@ -258,7 +258,7 @@ create_pointer_accelerator_filter_linear_low_dpi(int dpi, bool use_velocity_aver
 {
 	struct pointer_accelerator_low_dpi *filter;
 
-	filter = create_default_filter(dpi, use_velocity_averaging);
+	filter = create_default_filter_ldpi(dpi, use_velocity_averaging);
 	if (!filter)
 		return NULL;
 
