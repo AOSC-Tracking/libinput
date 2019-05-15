@@ -159,7 +159,7 @@ accelerator_filter_post_normalized(struct motion_filter *filter,
  *  This curve fits nicely into the range necessary.
  */
 static inline double
-speed_factor(double s)
+touchpad_speed_factor(double s)
 {
 	s += 1; /* map to [0, 2] */
 	return 435837.2 + (0.04762636 - 435837.2)/(1 + pow(s/240.4549,
@@ -176,7 +176,7 @@ touchpad_accelerator_set_speed(struct motion_filter *filter,
 	assert(speed_adjustment >= -1.0 && speed_adjustment <= 1.0);
 
 	filter->speed_adjustment = speed_adjustment;
-	accel_filter->speed_factor = speed_factor(speed_adjustment);
+	accel_filter->speed_factor = touchpad_speed_factor(speed_adjustment);
 
 	return true;
 }
