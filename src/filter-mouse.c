@@ -73,10 +73,10 @@ struct pointer_accelerator {
  * @return A unitless acceleration factor, to be applied to the delta
  */
 static inline double
-calculate_acceleration_factor(struct pointer_accelerator *accel,
-			      const struct device_float_coords *unaccelerated,
-			      void *data,
-			      uint64_t time)
+calculate_acceleration_factor_mouse(struct pointer_accelerator *accel,
+			            const struct device_float_coords *unaccelerated,
+			            void *data,
+			            uint64_t time)
 {
 	double velocity; /* units/us in device-native dpi*/
 	double accel_factor;
@@ -107,19 +107,19 @@ calculate_acceleration_factor(struct pointer_accelerator *accel,
  * motion, still in device units.
  */
 static struct device_float_coords
-accelerator_filter_generic(struct motion_filter *filter,
-			   const struct device_float_coords *unaccelerated,
-			   void *data, uint64_t time)
+accelerator_filter_generic_mouse(struct motion_filter *filter,
+			         const struct device_float_coords *unaccelerated,
+			         void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
 	double accel_value; /* unitless factor */
 	struct device_float_coords accelerated;
 
-	accel_value = calculate_acceleration_factor(accel,
-						    unaccelerated,
-						    data,
-						    time);
+	accel_value = calculate_acceleration_factor_mouse(accel,
+						          unaccelerated,
+						          data,
+						          time);
 
 	accelerated.x = accel_value * unaccelerated->x;
 	accelerated.y = accel_value * unaccelerated->y;
@@ -143,10 +143,10 @@ accelerator_filter_pre_normalized(struct motion_filter *filter,
 	converted.x = normalized.x;
 	converted.y = normalized.y;
 
-	accelerated = accelerator_filter_generic(filter,
-						 &converted,
-						 data,
-						 time);
+	accelerated = accelerator_filter_generic_mouse(filter,
+						       &converted,
+						       data,
+						       time);
 	normalized.x = accelerated.x;
 	normalized.y = accelerated.y;
 	return normalized;
@@ -165,9 +165,9 @@ accelerator_filter_pre_normalized(struct motion_filter *filter,
  * motion
  */
 static struct normalized_coords
-accelerator_filter_noop(struct motion_filter *filter,
-			const struct device_float_coords *unaccelerated,
-			void *data, uint64_t time)
+accelerator_filter_noop_mouse(struct motion_filter *filter,
+			      const struct device_float_coords *unaccelerated,
+			      void *data, uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
@@ -176,9 +176,9 @@ accelerator_filter_noop(struct motion_filter *filter,
 }
 
 static void
-accelerator_restart(struct motion_filter *filter,
-		    void *data,
-		    uint64_t time)
+accelerator_restart_mouse(struct motion_filter *filter,
+		          void *data,
+		          uint64_t time)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
@@ -187,7 +187,7 @@ accelerator_restart(struct motion_filter *filter,
 }
 
 static void
-accelerator_destroy(struct motion_filter *filter)
+accelerator_destroy_mouse(struct motion_filter *filter)
 {
 	struct pointer_accelerator *accel =
 		(struct pointer_accelerator *) filter;
@@ -197,8 +197,8 @@ accelerator_destroy(struct motion_filter *filter)
 }
 
 static bool
-accelerator_set_speed(struct motion_filter *filter,
-		      double speed_adjustment)
+accelerator_set_speed_mouse(struct motion_filter *filter,
+		            double speed_adjustment)
 {
 	struct pointer_accelerator *accel_filter =
 		(struct pointer_accelerator *)filter;
@@ -303,14 +303,14 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 struct motion_filter_interface accelerator_interface = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
 	.filter = accelerator_filter_pre_normalized,
-	.filter_constant = accelerator_filter_noop,
-	.restart = accelerator_restart,
-	.destroy = accelerator_destroy,
-	.set_speed = accelerator_set_speed,
+	.filter_constant = accelerator_filter_noop_mouse,
+	.restart = accelerator_restart_mouse,
+	.destroy = accelerator_destroy_mouse,
+	.set_speed = accelerator_set_speed_mouse,
 };
 
 static struct pointer_accelerator *
-create_default_filter(int dpi, bool use_velocity_averaging)
+create_default_filter_mouse(int dpi, bool use_velocity_averaging)
 {
 	struct pointer_accelerator *filter;
 
@@ -332,7 +332,7 @@ create_pointer_accelerator_filter_linear(int dpi, bool use_velocity_averaging)
 {
 	struct pointer_accelerator *filter;
 
-	filter = create_default_filter(dpi, use_velocity_averaging);
+	filter = create_default_filter_mouse(dpi, use_velocity_averaging);
 	if (!filter)
 		return NULL;
 
