@@ -53,10 +53,10 @@ enum mt_slot_state {
 };
 
 enum palm_state {
-	PALM_NONE,
-	PALM_NEW,
-	PALM_IS_PALM,
-	PALM_WAS_PALM, /* this touch sequence was a palm but isn't now */
+	FB_PALM_NONE,
+	FB_PALM_NEW,
+	FB_PALM_IS_PALM,
+	FB_PALM_WAS_PALM, /* this touch sequence was a palm but isn't now */
 };
 
 struct mt_slot {

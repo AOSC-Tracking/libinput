@@ -616,14 +616,14 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 				switch (v) {
 				case MT_TOOL_PALM:
 					/* new touch, no cancel needed */
-					slot->palm_state = PALM_WAS_PALM;
+					slot->palm_state = FB_PALM_WAS_PALM;
 					break;
 				default:
-					slot->palm_state = PALM_NONE;
+					slot->palm_state = FB_PALM_NONE;
 					break;
 				}
 			} else {
-				slot->palm_state = PALM_NONE;
+				slot->palm_state = FB_PALM_NONE;
 			}
 		} else {
 			dispatch->pending_event |= EVDEV_ABSOLUTE_MT;
@@ -652,12 +652,12 @@ fallback_process_touch(struct fallback_dispatch *dispatch,
 		 */
 		switch (e->value) {
 		case MT_TOOL_PALM:
-			if (slot->palm_state == PALM_NONE)
-				slot->palm_state = PALM_NEW;
+			if (slot->palm_state == FB_PALM_NONE)
+				slot->palm_state = FB_PALM_NEW;
 			break;
 		default:
-			if (slot->palm_state == PALM_IS_PALM)
-				slot->palm_state = PALM_WAS_PALM;
+			if (slot->palm_state == FB_PALM_IS_PALM)
+				slot->palm_state = FB_PALM_WAS_PALM;
 			break;
 		}
 		dispatch->pending_event |= EVDEV_ABSOLUTE_MT;
@@ -880,7 +880,7 @@ fallback_arbitrate_touch(struct fallback_dispatch *dispatch,
 
 	if (dispatch->arbitration.state == ARBITRATION_IGNORE_RECT &&
 	    point_in_rect(&slot->point, &dispatch->arbitration.rect)) {
-		slot->palm_state = PALM_IS_PALM;
+		slot->palm_state = FB_PALM_IS_PALM;
 		discard = true;
 	}
 
@@ -902,18 +902,18 @@ fallback_flush_mt_events(struct fallback_dispatch *dispatch,
 
 		slot->dirty = false;
 
-		/* Any palm state other than PALM_NEW means we've either
+		/* Any palm state other than FB_PALM_NEW means we've either
 		 * already cancelled the touch or the touch was never
 		 * a finger anyway and we didn't send the begin.
 		 */
-		if (slot->palm_state == PALM_NEW) {
+		if (slot->palm_state == FB_PALM_NEW) {
 			if (slot->state != SLOT_STATE_BEGIN)
 				sent = fallback_flush_mt_cancel(dispatch,
 								device,
 								i,
 								time);
-			slot->palm_state = PALM_IS_PALM;
-		} else if (slot->palm_state == PALM_NONE) {
+			slot->palm_state = FB_PALM_IS_PALM;
+		} else if (slot->palm_state == FB_PALM_NONE) {
 			switch (slot->state) {
 			case SLOT_STATE_BEGIN:
 				if (!fallback_arbitrate_touch(dispatch,
