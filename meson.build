@@ -651,6 +651,7 @@ executable('test-build-pedantic',
 	   dependencies : [dep_udev],
 	   include_directories : [includes_src, includes_include],
 	   c_args : ['-std=c99', '-pedantic', '-Werror'],
+	   override_options: [ 'unity=off' ],
 	   install : false)
 # build-test only
 executable('test-build-std-gnuc90',
@@ -658,12 +659,14 @@ executable('test-build-std-gnuc90',
 	   dependencies : [dep_udev],
 	   include_directories : [includes_src, includes_include],
 	   c_args : ['-std=gnu89', '-Werror'],
+	   override_options: [ 'unity=off' ],
 	   install : false)
 # test for linking with the minimal linker flags
 executable('test-build-linker',
 	   'test/build-pedantic.c',
 	   include_directories : [includes_src, includes_include],
 	   dependencies : [ dep_libinput, dep_libinput_util ],
+	   override_options: [ 'unity=off' ],
 	   install : false)
 # test including from C++ (in case CPP compiler is available)
 if add_languages('cpp', required: false)
@@ -671,6 +674,7 @@ if add_languages('cpp', required: false)
 		   'test/build-cxx.cc',
 		   dependencies : [dep_udev],
 		   include_directories : [includes_src, includes_include],
+		   override_options: [ 'unity=off' ],
 		   install : false)
 endif
 
@@ -814,6 +818,7 @@ if get_option('tests')
 					  include_directories : [includes_src, includes_include],
 					  dependencies : deps_litest,
 					  c_args : defs_litest_selftest,
+					  override_options: [ 'unity=off' ],
 					  install : false)
 	test('test-litest-selftest',
 	     test_litest_selftest,
@@ -837,6 +842,7 @@ if get_option('tests')
 				test_utils_sources,
 				include_directories : [includes_src, includes_include],
 				dependencies : deps_litest,
+				override_options: [ 'unity=off' ],
 				install: false)
 	test('test-utils',
 	     test_utils,
@@ -869,6 +875,7 @@ if get_option('tests')
 					  include_directories : [includes_src, includes_include],
 					  dependencies : deps_litest,
 					  install_dir : libinput_tool_path,
+					  override_options: [ 'unity=off' ],
 					  install : get_option('install-tests'))
 	configure_file(input : 'test/libinput-test-suite.man',
 		       output : 'libinput-test-suite.1',
