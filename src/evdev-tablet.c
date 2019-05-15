@@ -44,11 +44,11 @@ static int FORCED_PROXOUT_TIMEOUT = 50 * 1000; /* µs */
 
 static inline void
 tablet_get_pressed_buttons(struct tablet_dispatch *tablet,
-			   struct button_state *buttons)
+			   struct tablet_state *buttons)
 {
 	size_t i;
-	const struct button_state *state = &tablet->button_state,
-			          *prev_state = &tablet->prev_button_state;
+	const struct tablet_state *state = &tablet->tablet_state,
+			          *prev_state = &tablet->prev_tablet_state;
 
 	for (i = 0; i < sizeof(buttons->bits); i++)
 		buttons->bits[i] = state->bits[i] & ~(prev_state->bits[i]);
@@ -56,11 +56,11 @@ tablet_get_pressed_buttons(struct tablet_dispatch *tablet,
 
 static inline void
 tablet_get_released_buttons(struct tablet_dispatch *tablet,
-			    struct button_state *buttons)
+			    struct tablet_state *buttons)
 {
 	size_t i;
-	const struct button_state *state = &tablet->button_state,
-			          *prev_state = &tablet->prev_button_state;
+	const struct tablet_state *state = &tablet->tablet_state,
+			          *prev_state = &tablet->prev_tablet_state;
 
 	for (i = 0; i < sizeof(buttons->bits); i++)
 		buttons->bits[i] = prev_state->bits[i] &
@@ -72,8 +72,8 @@ tablet_get_released_buttons(struct tablet_dispatch *tablet,
 static inline void
 tablet_force_button_presses(struct tablet_dispatch *tablet)
 {
-	struct button_state *state = &tablet->button_state,
-			    *prev_state = &tablet->prev_button_state;
+	struct tablet_state *state = &tablet->tablet_state,
+			    *prev_state = &tablet->prev_tablet_state;
 	size_t i;
 
 	for (i = 0; i < sizeof(state->bits); i++) {
@@ -712,10 +712,10 @@ tablet_update_button(struct tablet_dispatch *tablet,
 	}
 
 	if (enable) {
-		set_bit(tablet->button_state.bits, evcode);
+		set_bit(tablet->tablet_state.bits, evcode);
 		tablet_set_status(tablet, TABLET_BUTTONS_PRESSED);
 	} else {
-		clear_bit(tablet->button_state.bits, evcode);
+		clear_bit(tablet->tablet_state.bits, evcode);
 		tablet_set_status(tablet, TABLET_BUTTONS_RELEASED);
 	}
 }
@@ -1097,7 +1097,7 @@ tablet_notify_button_mask(struct tablet_dispatch *tablet,
 			  struct evdev_device *device,
 			  uint64_t time,
 			  struct libinput_tablet_tool *tool,
-			  const struct button_state *buttons,
+			  const struct tablet_state *buttons,
 			  enum libinput_button_state state)
 {
 	struct libinput_device *base = &device->base;
@@ -1129,7 +1129,7 @@ tablet_notify_buttons(struct tablet_dispatch *tablet,
 		      struct libinput_tablet_tool *tool,
 		      enum libinput_button_state state)
 {
-	struct button_state buttons;
+	struct tablet_state buttons;
 
 	if (state == LIBINPUT_BUTTON_STATE_PRESSED)
 		tablet_get_pressed_buttons(tablet, &buttons);
@@ -1760,9 +1760,9 @@ tablet_flush(struct tablet_dispatch *tablet,
 
 	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
 		/* Release all stylus buttons */
-		memset(tablet->button_state.bits,
+		memset(tablet->tablet_state.bits,
 		       0,
-		       sizeof(tablet->button_state.bits));
+		       sizeof(tablet->tablet_state.bits));
 		tablet_set_status(tablet, TABLET_BUTTONS_RELEASED);
 		if (tablet_has_status(tablet, TABLET_TOOL_IN_CONTACT))
 			tablet_set_status(tablet, TABLET_TOOL_LEAVING_CONTACT);
@@ -1841,9 +1841,9 @@ static inline void
 tablet_reset_state(struct tablet_dispatch *tablet)
 {
 	/* Update state */
-	memcpy(&tablet->prev_button_state,
-	       &tablet->button_state,
-	       sizeof(tablet->button_state));
+	memcpy(&tablet->prev_tablet_state,
+	       &tablet->tablet_state,
+	       sizeof(tablet->tablet_state));
 }
 
 static void

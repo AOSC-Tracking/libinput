@@ -47,7 +47,7 @@ enum tablet_status {
 	TABLET_TOOL_OUT_OF_RANGE	= bit(9),
 };
 
-struct button_state {
+struct tablet_state {
 	unsigned char bits[NCHARS(KEY_CNT)];
 };
 
@@ -71,8 +71,8 @@ struct tablet_dispatch {
 	/* Only used for tablets that don't report serial numbers */
 	struct list tool_list;
 
-	struct button_state button_state;
-	struct button_state prev_button_state;
+	struct tablet_state tablet_state;
+	struct tablet_state prev_tablet_state;
 
 	uint32_t tool_state;
 	uint32_t prev_tool_state;
