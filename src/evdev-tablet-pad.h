@@ -43,7 +43,7 @@ enum pad_axes {
 	PAD_AXIS_STRIP2		= bit(3),
 };
 
-struct button_state {
+struct pad_state {
 	unsigned char bits[NCHARS(KEY_CNT)];
 };
 
@@ -53,8 +53,8 @@ struct pad_dispatch {
 	unsigned char status;
 	uint32_t changed_axes;
 
-	struct button_state button_state;
-	struct button_state prev_button_state;
+	struct pad_state pad_state;
+	struct pad_state prev_pad_state;
 
 	char button_map[KEY_CNT];
 	unsigned int nbuttons;

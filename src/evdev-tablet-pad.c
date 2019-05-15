@@ -38,10 +38,10 @@
 
 static void
 pad_get_buttons_pressed(struct pad_dispatch *pad,
-			struct button_state *buttons)
+			struct pad_state *buttons)
 {
-	struct button_state *state = &pad->button_state;
-	struct button_state *prev_state = &pad->prev_button_state;
+	struct pad_state *state = &pad->pad_state;
+	struct pad_state *prev_state = &pad->prev_pad_state;
 	unsigned int i;
 
 	for (i = 0; i < sizeof(buttons->bits); i++)
@@ -50,10 +50,10 @@ pad_get_buttons_pressed(struct pad_dispatch *pad,
 
 static void
 pad_get_buttons_released(struct pad_dispatch *pad,
-			 struct button_state *buttons)
+			 struct pad_state *buttons)
 {
-	struct button_state *state = &pad->button_state;
-	struct button_state *prev_state = &pad->prev_button_state;
+	struct pad_state *state = &pad->pad_state;
+	struct pad_state *prev_state = &pad->prev_pad_state;
 	unsigned int i;
 
 	for (i = 0; i < sizeof(buttons->bits); i++)
@@ -64,13 +64,13 @@ static inline bool
 pad_button_is_down(const struct pad_dispatch *pad,
 		   uint32_t button)
 {
-	return bit_is_set(pad->button_state.bits, button);
+	return bit_is_set(pad->pad_state.bits, button);
 }
 
 static inline bool
 pad_any_button_down(const struct pad_dispatch *pad)
 {
-	const struct button_state *state = &pad->button_state;
+	const struct pad_state *state = &pad->pad_state;
 	unsigned int i;
 
 	for (i = 0; i < sizeof(state->bits); i++)
@@ -85,7 +85,7 @@ pad_button_set_down(struct pad_dispatch *pad,
 		    uint32_t button,
 		    bool is_down)
 {
-	struct button_state *state = &pad->button_state;
+	struct pad_state *state = &pad->pad_state;
 
 	if (is_down) {
 		set_bit(state->bits, button);
@@ -355,7 +355,7 @@ static void
 pad_notify_button_mask(struct pad_dispatch *pad,
 		       struct evdev_device *device,
 		       uint64_t time,
-		       const struct button_state *buttons,
+		       const struct pad_state *buttons,
 		       enum libinput_button_state state)
 {
 	struct libinput_device *base = &device->base;
@@ -394,7 +394,7 @@ pad_notify_buttons(struct pad_dispatch *pad,
 		   uint64_t time,
 		   enum libinput_button_state state)
 {
-	struct button_state buttons;
+	struct pad_state buttons;
 
 	if (state == LIBINPUT_BUTTON_STATE_PRESSED)
 		pad_get_buttons_pressed(pad, &buttons);
@@ -447,9 +447,9 @@ pad_flush(struct pad_dispatch *pad,
 	}
 
 	/* Update state */
-	memcpy(&pad->prev_button_state,
-	       &pad->button_state,
-	       sizeof(pad->button_state));
+	memcpy(&pad->prev_pad_state,
+	       &pad->pad_state,
+	       sizeof(pad->pad_state));
 }
 
 static void
