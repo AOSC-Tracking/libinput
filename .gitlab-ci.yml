@@ -373,6 +373,13 @@ fedora:29@default-build-release:
     MESON_ARGS: "-Dbuildtype=release"
     CFLAGS: "-Werror"
 
+fedora:29@default-build-release-unity:
+  extends: .fedora-build@template
+  variables:
+    FEDORA_VERSION: 29
+    MESON_ARGS: "-Dbuildtype=release --unity on"
+    CFLAGS: "-Werror"
+
 fedora:29@scan-build:
   extends: .fedora-build@template
   variables:
@@ -389,6 +396,12 @@ fedora:29@scan-build:
 # Below jobs are build option combinations. We only
 # run them on one image, they shouldn't fail on one distro
 # when they succeed on another.
+
+fedora:29@build-unity:
+  extends: .fedora-build@template
+  variables:
+    FEDORA_VERSION: 29
+    MESON_ARGS: "--unity on"
 
 fedora:29@build-no-libwacom:
   extends: .fedora-build@template
