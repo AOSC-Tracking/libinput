@@ -33,9 +33,6 @@
 #include "evdev.h"
 #include "udev-seat.h"
 
-static const char default_seat[] = "seat0";
-static const char default_seat_name[] = "default";
-
 static struct udev_seat *
 udev_seat_create(struct udev_input *input,
 		 const char *device_seat,

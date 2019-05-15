@@ -150,6 +150,9 @@ enum evdev_arbitration_state {
 	ARBITRATION_IGNORE_RECT,
 };
 
+static const char default_seat[] = "seat0";
+static const char default_seat_name[] = "default";
+
 struct evdev_device {
 	struct libinput_device base;
 

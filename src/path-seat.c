@@ -32,9 +32,6 @@
 #include "path-seat.h"
 #include "evdev.h"
 
-static const char default_seat[] = "seat0";
-static const char default_seat_name[] = "default";
-
 static void
 path_disable_device(struct libinput *libinput,
 		    struct evdev_device *device)
