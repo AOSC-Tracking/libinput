@@ -254,7 +254,7 @@ path_device_change_seat(struct libinput_device *device,
 	return rc;
 }
 
-static const struct libinput_interface_backend interface_backend = {
+static const struct libinput_interface_backend path_backend = {
 	.resume = path_input_enable,
 	.suspend = path_input_disable,
 	.destroy = path_input_destroy,
@@ -277,7 +277,7 @@ libinput_path_create_context(const struct libinput_interface *interface,
 
 	input = zalloc(sizeof *input);
 	if (libinput_init(&input->base, interface,
-			  &interface_backend, user_data) != 0) {
+			  &path_backend, user_data) != 0) {
 		udev_unref(udev);
 		free(input);
 		return NULL;
@@ -335,7 +335,7 @@ libinput_path_add_device(struct libinput *libinput,
 		return NULL;
 	}
 
-	if (libinput->interface_backend != &interface_backend) {
+	if (libinput->interface_backend != &path_backend) {
 		log_bug_client(libinput, "Mismatching backends.\n");
 		return NULL;
 	}
@@ -372,7 +372,7 @@ libinput_path_remove_device(struct libinput_device *device)
 	struct evdev_device *evdev = evdev_device(device);
 	struct path_device *dev;
 
-	if (libinput->interface_backend != &interface_backend) {
+	if (libinput->interface_backend != &path_backend) {
 		log_bug_client(libinput, "Mismatching backends.\n");
 		return;
 	}
