@@ -4499,6 +4499,23 @@ enum libinput_config_status
 libinput_device_config_tap_set_drag_enabled(struct libinput_device *device,
 					    enum libinput_config_drag_state enable);
 
+
+/**
+ * @ingroup config
+ *
+ * Set the tap-and-drag lock timeout in milliseconds on this device. When > 0,
+ * the current drag lock is canceled after the specified number of milliseconds.
+
+ * @param device The device to configure
+ * @param ms the number of milliseconds to wait before cancelling the drag lock
+ *
+ */
+enum libinput_config_status
+libinput_device_config_tap_set_drag_lock_timeout(struct libinput_device *device,
+					    int timeout);
+int
+libinput_device_config_tap_get_drag_lock_timeout(struct libinput_device *device);
+
 /**
  * @ingroup config
  *

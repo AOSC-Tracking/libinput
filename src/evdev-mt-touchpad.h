@@ -399,6 +399,7 @@ struct tp_dispatch {
 
 		bool drag_enabled;
 		bool drag_lock_enabled;
+		int drag_lock_timeout;
 
 		unsigned int nfingers_down;	/* number of fingers down for tapping (excl. thumb/palm) */
 	} tap;

@@ -3726,6 +3726,20 @@ libinput_device_config_tap_get_default_drag_lock_enabled(struct libinput_device 
 	return device->config.tap->get_default_draglock_enabled(device);
 }
 
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_tap_set_drag_lock_timeout(struct libinput_device *device,
+					    int timeout)
+{
+	return device->config.tap->set_draglock_timeout(device, timeout);
+}
+
+
+LIBINPUT_EXPORT int
+libinput_device_config_tap_get_drag_lock_timeout(struct libinput_device *device)
+{
+	return device->config.tap->get_draglock_timeout(device);
+}
+
 LIBINPUT_EXPORT int
 libinput_device_config_calibration_has_matrix(struct libinput_device *device)
 {

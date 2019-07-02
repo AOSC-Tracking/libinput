@@ -150,7 +150,9 @@ tp_tap_set_timer(struct tp_dispatch *tp, uint64_t time)
 static void
 tp_tap_set_drag_timer(struct tp_dispatch *tp, uint64_t time)
 {
-	libinput_timer_set(&tp->tap.timer, time + DEFAULT_DRAG_TIMEOUT_PERIOD);
+	if (tp->tap.drag_lock_timeout > 0) {
+		libinput_timer_set(&tp->tap.timer, time + tp->tap.drag_lock_timeout);
+	}
 }
 
 static void
@@ -1310,6 +1312,27 @@ tp_tap_config_get_default_draglock_enabled(struct libinput_device *device)
 	return tp_drag_lock_default(evdev);
 }
 
+static enum libinput_config_status
+tp_tap_config_set_draglock_timeout(struct libinput_device *device,
+				   int timeout)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	tp->tap.drag_lock_timeout = ms2us(timeout);
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static int
+tp_tap_config_get_draglock_timeout(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	return us2ms(tp->tap.drag_lock_timeout);
+}
+
 void
 tp_init_tap(struct tp_dispatch *tp)
 {
@@ -1328,6 +1351,8 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.config.set_draglock_enabled = tp_tap_config_set_draglock_enabled;
 	tp->tap.config.get_draglock_enabled = tp_tap_config_get_draglock_enabled;
 	tp->tap.config.get_default_draglock_enabled = tp_tap_config_get_default_draglock_enabled;
+	tp->tap.config.set_draglock_timeout = tp_tap_config_set_draglock_timeout;
+	tp->tap.config.get_draglock_timeout = tp_tap_config_get_draglock_timeout;
 	tp->device->base.config.tap = &tp->tap.config;
 
 	tp->tap.state = TAP_STATE_IDLE;
@@ -1336,6 +1361,8 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.want_map = tp->tap.map;
 	tp->tap.drag_enabled = tp_drag_default(tp->device);
 	tp->tap.drag_lock_enabled = tp_drag_lock_default(tp->device);
+
+	tp->tap.drag_lock_timeout = DEFAULT_DRAG_TIMEOUT_PERIOD;
 
 	snprintf(timer_name,
 		 sizeof(timer_name),
