@@ -33,7 +33,7 @@
 #include "evdev-mt-touchpad.h"
 
 #define DEFAULT_TAP_TIMEOUT_PERIOD ms2us(180)
-#define DEFAULT_DRAG_TIMEOUT_PERIOD ms2us(300)
+#define DEFAULT_DRAG_TIMEOUT_PERIOD 300
 #define DEFAULT_TAP_MOVE_THRESHOLD 1.3 /* mm */
 
 enum tap_event {
@@ -1333,6 +1333,12 @@ tp_tap_config_get_draglock_timeout(struct libinput_device *device)
 	return us2ms(tp->tap.drag_lock_timeout);
 }
 
+static int
+tp_tap_config_get_draglock_timeout_default(struct libinput_device *device)
+{
+	return DEFAULT_DRAG_TIMEOUT_PERIOD;
+}
+
 void
 tp_init_tap(struct tp_dispatch *tp)
 {
@@ -1353,7 +1359,10 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.config.get_default_draglock_enabled = tp_tap_config_get_default_draglock_enabled;
 	tp->tap.config.set_draglock_timeout = tp_tap_config_set_draglock_timeout;
 	tp->tap.config.get_draglock_timeout = tp_tap_config_get_draglock_timeout;
+	tp->tap.config.get_draglock_timeout_default = tp_tap_config_get_draglock_timeout_default;
 	tp->device->base.config.tap = &tp->tap.config;
+
+	tp->tap.drag_lock_timeout = ms2us(DEFAULT_DRAG_TIMEOUT_PERIOD);
 
 	tp->tap.state = TAP_STATE_IDLE;
 	tp->tap.enabled = tp_tap_default(tp->device);
@@ -1361,8 +1370,6 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.want_map = tp->tap.map;
 	tp->tap.drag_enabled = tp_drag_default(tp->device);
 	tp->tap.drag_lock_enabled = tp_drag_lock_default(tp->device);
-
-	tp->tap.drag_lock_timeout = DEFAULT_DRAG_TIMEOUT_PERIOD;
 
 	snprintf(timer_name,
 		 sizeof(timer_name),

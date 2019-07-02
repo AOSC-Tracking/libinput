@@ -306,4 +306,5 @@ LIBINPUT_1.14 {
 	libinput_event_tablet_tool_size_minor_has_changed;
 	libinput_device_config_tap_set_drag_lock_timeout;
 	libinput_device_config_tap_get_drag_lock_timeout;
+	libinput_device_config_tap_get_default_drag_lock_timeout;
 } LIBINPUT_1.11;

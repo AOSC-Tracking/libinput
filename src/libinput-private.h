@@ -215,6 +215,7 @@ struct libinput_device_config_tap {
 	enum libinput_config_drag_lock_state (*get_default_draglock_enabled)(struct libinput_device *device);
 	enum libinput_config_status (*set_draglock_timeout)(struct libinput_device *device, int timeout);
 	int (*get_draglock_timeout)(struct libinput_device *device);
+	int (*get_draglock_timeout_default)(struct libinput_device *device);
 };
 
 struct libinput_device_config_calibration {

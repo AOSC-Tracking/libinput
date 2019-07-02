@@ -4516,6 +4516,9 @@ libinput_device_config_tap_set_drag_lock_timeout(struct libinput_device *device,
 int
 libinput_device_config_tap_get_drag_lock_timeout(struct libinput_device *device);
 
+int
+libinput_device_config_tap_get_default_drag_lock_timeout(struct libinput_device *device);
+
 /**
  * @ingroup config
  *
