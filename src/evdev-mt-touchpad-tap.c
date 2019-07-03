@@ -1329,7 +1329,9 @@ tp_tap_config_get_draglock_timeout(struct libinput_device *device)
 {
 	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
 	struct tp_dispatch *tp = tp_dispatch(dispatch);
-
+	if (tp->tap.drag_lock_timeout == -2) {
+		return DEFAULT_DRAG_TIMEOUT_PERIOD;
+	}
 	return us2ms(tp->tap.drag_lock_timeout);
 }
 
@@ -1362,14 +1364,13 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.config.get_draglock_timeout_default = tp_tap_config_get_draglock_timeout_default;
 	tp->device->base.config.tap = &tp->tap.config;
 
-	tp->tap.drag_lock_timeout = ms2us(DEFAULT_DRAG_TIMEOUT_PERIOD);
-
 	tp->tap.state = TAP_STATE_IDLE;
 	tp->tap.enabled = tp_tap_default(tp->device);
 	tp->tap.map = LIBINPUT_CONFIG_TAP_MAP_LRM;
 	tp->tap.want_map = tp->tap.map;
 	tp->tap.drag_enabled = tp_drag_default(tp->device);
 	tp->tap.drag_lock_enabled = tp_drag_lock_default(tp->device);
+	tp->tap.drag_lock_timeout = -2;
 
 	snprintf(timer_name,
 		 sizeof(timer_name),
