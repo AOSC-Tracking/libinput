@@ -233,8 +233,6 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 {
 	struct touchpad_accelerator *accel_filter =
 		(struct touchpad_accelerator *)filter;
-	const double threshold = accel_filter->threshold; /* units/us */
-	const double baseline = 0.9;
 	double factor; /* unitless */
 
 	/* Convert to mm/s because that's something one can understand */
@@ -242,72 +240,11 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	/*
 	   Our acceleration function calculates a factor to accelerate input
-	   deltas with. The function is a double incline with a plateau,
-	   with a rough shape like this:
-
-	  accel
-	 factor
-	   ^         ______
-	   |        )
-	   |  _____)
-	   | /
-	   |/
-	   +-------------> speed in
-
-	   Except the second incline is a curve, but well, asciiart.
-
-	   The first incline is a linear function in the form
-		   y = ax + b
-		   where y is speed_out
-		         x is speed_in
-			 a is the incline of acceleration
-			 b is minimum acceleration factor
-	   for speeds up to the lower threshold, we decelerate, down to 30%
-	   of input speed.
-		   hence 1 = a * 7 + 0.3
-		       0.7 = a * 7  => a := 0.1
-		   deceleration function is thus:
-			y = 0.1x + 0.3
-
-	   The first plateau is the baseline.
-
-	   The second incline is a curve up, based on magic numbers
-	   obtained by trial-and-error.
-
-	   Above the second incline we have another plateau because
-	   by then you're moving so fast that extra acceleration doesn't
-	   help.
-
-	  Note:
-	  * The minimum threshold is a result of trial-and-error and
-	    has no other special meaning.
-	  * 0.3 is chosen simply because it is above the Nyquist frequency
-	    for subpixel motion within a pixel.
+	   deltas with. The basic concept is that the acceleration factor should
+	   increase monotonically with speed_in, but should not explode with
+	   high speed_in value.
 	*/
-
-	if (speed_in < 7.0) {
-		factor = min(baseline, 0.1 * speed_in + 0.3);
-	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
-	} else if (speed_in < threshold) {
-		factor = baseline;
-	} else {
-
-	/* Acceleration function above the threshold is a curve up
-	   to four times the threshold, because why not.
-
-	   Don't assume anything about the specific numbers though, this was
-	   all just trial and error by tweaking numbers here and there, then
-	   the formula was optimized doing basic maths.
-
-	   You could replace this with some other random formula that gives
-	   the same numbers and it would be just as correct.
-
-	 */
-		const double upper_threshold = threshold * 4.0;
-		speed_in = min(speed_in, upper_threshold);
-
-		factor = 0.0025 * (speed_in/threshold) * (speed_in - threshold) + baseline;
-	}
+	factor = 0.2 * pow(speed_in, 0.55);
 
 	factor *= accel_filter->speed_factor;
 	return factor * TP_MAGIC_SLOWDOWN;
