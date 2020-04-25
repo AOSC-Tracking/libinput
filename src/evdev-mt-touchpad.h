@@ -28,6 +28,7 @@
 
 #include "evdev.h"
 #include "timer.h"
+#include "evdev-debounce.h"
 
 #define TOUCHPAD_HISTORY_LENGTH 4
 #define TOUCHPAD_MIN_SAMPLES 4
@@ -364,6 +365,8 @@ struct tp_dispatch {
 
 		enum libinput_config_click_method click_method;
 		struct libinput_device_config_click_method config_method;
+
+		struct debounce debounce;
 	} buttons;
 
 	struct {

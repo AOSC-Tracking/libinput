@@ -994,31 +994,17 @@ tp_remove_buttons(struct tp_dispatch *tp)
 static int
 tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 {
-	uint32_t current, old, button;
+	uint32_t current, old;
 
 	current = tp->buttons.state;
 	old = tp->buttons.old_state;
-	button = BTN_LEFT;
 
 	while (current || old) {
-		enum libinput_button_state state;
-
 		if ((current & 0x1) ^ (old & 0x1)) {
-			uint32_t b;
-
-			if (!!(current & 0x1))
-				state = LIBINPUT_BUTTON_STATE_PRESSED;
-			else
-				state = LIBINPUT_BUTTON_STATE_RELEASED;
-
-			b = evdev_to_left_handed(tp->device, button);
-			evdev_pointer_notify_physical_button(tp->device,
-							     time,
-							     b,
-							     state);
+			/* Send it through the debounce filter. */
+			debounce_handle_state(&tp->buttons.debounce, time);
 		}
 
-		button++;
 		current >>= 1;
 		old >>= 1;
 	}

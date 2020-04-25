@@ -1964,6 +1964,8 @@ tp_interface_remove(struct evdev_dispatch *dispatch)
 {
 	struct tp_dispatch *tp = tp_dispatch(dispatch);
 
+	libinput_timer_cancel(&tp->buttons.debounce.timer);
+	libinput_timer_cancel(&tp->buttons.debounce.timer_short);
 	libinput_timer_cancel(&tp->arbitration.arbitration_timer);
 
 	tp_remove_tap(tp);
@@ -1979,6 +1981,8 @@ tp_interface_destroy(struct evdev_dispatch *dispatch)
 	struct tp_dispatch *tp = tp_dispatch(dispatch);
 
 	libinput_timer_destroy(&tp->arbitration.arbitration_timer);
+	libinput_timer_destroy(&tp->buttons.debounce.timer);
+	libinput_timer_destroy(&tp->buttons.debounce.timer_short);
 	libinput_timer_destroy(&tp->palm.trackpoint_timer);
 	libinput_timer_destroy(&tp->dwt.keyboard_timer);
 	libinput_timer_destroy(&tp->tap.timer);
@@ -3781,6 +3785,52 @@ tp_init_left_handed(struct tp_dispatch *tp,
 
 }
 
+static bool
+db_key_has_changed(struct evdev_device *device, int code)
+{
+	uint32_t shift;
+	struct tp_dispatch *tp = (struct tp_dispatch *)device->dispatch;
+
+	/* Button states are stored in a 32 bit integer. */
+	if (code < BTN_LEFT || code > (BTN_LEFT + 31)) {
+		return false;
+	}
+
+	shift = code - BTN_LEFT;
+
+	if (((tp->buttons.state >> shift) & 0x1) ^ ((tp->buttons.old_state >> shift) & 0x1)) {
+		return true;
+	}
+
+	return false;
+}
+
+static bool
+db_is_key_down(struct evdev_device *device, int code)
+{
+	uint32_t shift;
+	struct tp_dispatch *tp = (struct tp_dispatch *)device->dispatch;
+
+	/* Button states are stored in a 32 bit integer. */
+	if (code < BTN_LEFT || code > (BTN_LEFT + 31)) {
+		return false;
+	}
+
+	shift = code - BTN_LEFT;
+
+	if ((tp->buttons.state >> shift) & 0x1) {
+		return true;
+	}
+
+	return false;
+}
+
+/* Debounce callbacks. */
+static const struct debounce_key_ops db_key_ops = {
+	.key_has_changed = db_key_has_changed,
+	.is_key_down     = db_is_key_down
+};
+
 struct evdev_dispatch *
 evdev_mt_touchpad_create(struct evdev_device *device)
 {
@@ -3804,6 +3854,8 @@ evdev_mt_touchpad_create(struct evdev_device *device)
 	tp->sendevents.config.get_default_mode = tp_sendevents_get_default_mode;
 
 	tp_init_left_handed(tp, device);
+
+	init_debounce(&tp->buttons.debounce, device, &db_key_ops);
 
 	return &tp->base;
 }
