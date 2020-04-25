@@ -23,7 +23,7 @@
 
 #include "config.h"
 
-#include "evdev-fallback.h"
+#include "evdev-debounce.h"
 
 /* Debounce cases to handle
      P ... button press
@@ -101,78 +101,78 @@ debounce_event_to_str(enum debounce_event event)
 }
 
 static inline void
-log_debounce_bug(struct fallback_dispatch *fallback, enum debounce_event event)
+log_debounce_bug(struct debounce *debounce, enum debounce_event event)
 {
-	evdev_log_bug_libinput(fallback->device,
+	evdev_log_bug_libinput(debounce->device,
 			       "invalid debounce event %s in state %s\n",
 			       debounce_event_to_str(event),
-			       debounce_state_to_str(fallback->debounce.state));
+			       debounce_state_to_str(debounce->state));
 
 }
 
 static inline void
-debounce_set_state(struct fallback_dispatch *fallback,
+debounce_set_state(struct debounce *debounce,
 		   enum debounce_state new_state)
 {
 	assert(new_state >= DEBOUNCE_STATE_IS_UP &&
 	       new_state <= DEBOUNCE_STATE_IS_DOWN_DELAYING);
 
-	fallback->debounce.state = new_state;
+	debounce->state = new_state;
 }
 
 static inline void
-debounce_set_timer(struct fallback_dispatch *fallback,
+debounce_set_timer(struct debounce *debounce,
 		   uint64_t time)
 {
 	const int DEBOUNCE_TIMEOUT_BOUNCE = ms2us(25);
 
-	libinput_timer_set(&fallback->debounce.timer,
+	libinput_timer_set(&debounce->timer,
 			   time + DEBOUNCE_TIMEOUT_BOUNCE);
 }
 
 static inline void
-debounce_set_timer_short(struct fallback_dispatch *fallback,
+debounce_set_timer_short(struct debounce *debounce,
 			 uint64_t time)
 {
 	const int DEBOUNCE_TIMEOUT_SPURIOUS = ms2us(12);
 
-	libinput_timer_set(&fallback->debounce.timer_short,
+	libinput_timer_set(&debounce->timer_short,
 			   time + DEBOUNCE_TIMEOUT_SPURIOUS);
 }
 
 static inline void
-debounce_cancel_timer(struct fallback_dispatch *fallback)
+debounce_cancel_timer(struct debounce *debounce)
 {
-	libinput_timer_cancel(&fallback->debounce.timer);
+	libinput_timer_cancel(&debounce->timer);
 }
 
 static inline void
-debounce_cancel_timer_short(struct fallback_dispatch *fallback)
+debounce_cancel_timer_short(struct debounce *debounce)
 {
-	libinput_timer_cancel(&fallback->debounce.timer_short);
+	libinput_timer_cancel(&debounce->timer_short);
 }
 
 static inline void
-debounce_enable_spurious(struct fallback_dispatch *fallback)
+debounce_enable_spurious(struct debounce *debounce)
 {
-	if (fallback->debounce.spurious_enabled)
-		evdev_log_bug_libinput(fallback->device,
+	if (debounce->spurious_enabled)
+		evdev_log_bug_libinput(debounce->device,
 				       "tried to enable spurious debouncing twice\n");
 
-	fallback->debounce.spurious_enabled = true;
-	evdev_log_info(fallback->device,
+	debounce->spurious_enabled = true;
+	evdev_log_info(debounce->device,
 		       "Enabling spurious button debouncing, "
 		       "see %sbutton-debouncing.html for details\n",
 		       HTTP_DOC_LINK);
 }
 
 static void
-debounce_notify_button(struct fallback_dispatch *fallback,
+debounce_notify_button(struct debounce *debounce,
 		       enum libinput_button_state state)
 {
-	struct evdev_device *device = fallback->device;
-	unsigned int code = fallback->debounce.button_code;
-	uint64_t time = fallback->debounce.button_time;
+	struct evdev_device *device = debounce->device;
+	unsigned int code = debounce->button_code;
+	uint64_t time = debounce->button_time;
 
 	code = evdev_to_left_handed(device, code);
 
@@ -180,20 +180,20 @@ debounce_notify_button(struct fallback_dispatch *fallback,
 }
 
 static void
-debounce_is_up_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_up_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		fallback->debounce.button_time = time;
-		debounce_set_timer(fallback, time);
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN_WAITING);
-		debounce_notify_button(fallback,
+		debounce->button_time = time;
+		debounce_set_timer(debounce, time);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN_WAITING);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_PRESSED);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
 	case DEBOUNCE_EVENT_TIMEOUT:
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_OTHERBUTTON:
 		break;
@@ -201,27 +201,27 @@ debounce_is_up_handle_event(struct fallback_dispatch *fallback, enum debounce_ev
 }
 
 static void
-debounce_is_down_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_down_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
-		fallback->debounce.button_time = time;
-		debounce_set_timer(fallback, time);
-		debounce_set_timer_short(fallback, time);
-		if (fallback->debounce.spurious_enabled) {
-			debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_DELAYING_SPURIOUS);
+		debounce->button_time = time;
+		debounce_set_timer(debounce, time);
+		debounce_set_timer_short(debounce, time);
+		if (debounce->spurious_enabled) {
+			debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_DELAYING_SPURIOUS);
 		} else {
-			debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_DETECTING_SPURIOUS);
-			debounce_notify_button(fallback,
+			debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_DETECTING_SPURIOUS);
+			debounce_notify_button(debounce,
 					       LIBINPUT_BUTTON_STATE_RELEASED);
 		}
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_OTHERBUTTON:
 		break;
@@ -229,189 +229,189 @@ debounce_is_down_handle_event(struct fallback_dispatch *fallback, enum debounce_
 }
 
 static void
-debounce_is_down_waiting_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_down_waiting_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_DELAYING);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_DELAYING);
 		/* Note: In the debouncing RPR case, we use the last
 		 * release's time stamp */
-		fallback->debounce.button_time = time;
+		debounce->button_time = time;
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN);
 		break;
 	}
 }
 
 static void
-debounce_is_up_delaying_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_up_delaying_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN_WAITING);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN_WAITING);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP);
-		debounce_notify_button(fallback,
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_RELEASED);
 		break;
 	}
 }
 
 static void
-debounce_is_up_delaying_spurious_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_up_delaying_spurious_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN);
-		debounce_cancel_timer(fallback);
-		debounce_cancel_timer_short(fallback);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN);
+		debounce_cancel_timer(debounce);
+		debounce_cancel_timer_short(debounce);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
 	case DEBOUNCE_EVENT_TIMEOUT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_WAITING);
-		debounce_notify_button(fallback,
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_WAITING);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_RELEASED);
 		break;
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP);
-		debounce_notify_button(fallback,
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_RELEASED);
 		break;
 	}
 }
 
 static void
-debounce_is_up_detecting_spurious_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_up_detecting_spurious_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
 		/* Note: in a bouncing PRP case, we use the last press
 		 * event time */
-		fallback->debounce.button_time = time;
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN_DETECTING_SPURIOUS);
+		debounce->button_time = time;
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN_DETECTING_SPURIOUS);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_WAITING);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_WAITING);
 		break;
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP);
 		break;
 	}
 }
 
 static void
-debounce_is_down_detecting_spurious_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_down_detecting_spurious_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_DETECTING_SPURIOUS);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_DETECTING_SPURIOUS);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		debounce_cancel_timer(fallback);
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN);
-		debounce_enable_spurious(fallback);
-		debounce_notify_button(fallback,
+		debounce_cancel_timer(debounce);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN);
+		debounce_enable_spurious(debounce);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_PRESSED);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN);
-		debounce_notify_button(fallback,
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_PRESSED);
 		break;
 	}
 }
 
 static void
-debounce_is_up_waiting_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_up_waiting_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
 		/* Note: in a debouncing PRP case, we use the last press'
 		 * time */
-		fallback->debounce.button_time = time;
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN_DELAYING);
+		debounce->button_time = time;
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN_DELAYING);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP);
 		break;
 	}
 }
 
 static void
-debounce_is_down_delaying_handle_event(struct fallback_dispatch *fallback, enum debounce_event event, uint64_t time)
+debounce_is_down_delaying_handle_event(struct debounce *debounce, enum debounce_event event, uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_UP_WAITING);
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_UP_WAITING);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT:
 	case DEBOUNCE_EVENT_OTHERBUTTON:
-		debounce_set_state(fallback, DEBOUNCE_STATE_IS_DOWN);
-		debounce_notify_button(fallback,
+		debounce_set_state(debounce, DEBOUNCE_STATE_IS_DOWN);
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_PRESSED);
 		break;
 	}
 }
 
 static void
-debounce_disabled_handle_event(struct fallback_dispatch *fallback,
+debounce_disabled_handle_event(struct debounce *debounce,
 			enum debounce_event event,
 			uint64_t time)
 {
 	switch (event) {
 	case DEBOUNCE_EVENT_PRESS:
-		fallback->debounce.button_time = time;
-		debounce_notify_button(fallback,
+		debounce->button_time = time;
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_PRESSED);
 		break;
 	case DEBOUNCE_EVENT_RELEASE:
-		fallback->debounce.button_time = time;
-		debounce_notify_button(fallback,
+		debounce->button_time = time;
+		debounce_notify_button(debounce,
 				       LIBINPUT_BUTTON_STATE_RELEASED);
 		break;
 	case DEBOUNCE_EVENT_TIMEOUT_SHORT:
 	case DEBOUNCE_EVENT_TIMEOUT:
-		log_debounce_bug(fallback, event);
+		log_debounce_bug(debounce, event);
 		break;
 	case DEBOUNCE_EVENT_OTHERBUTTON:
 		break;
@@ -419,60 +419,60 @@ debounce_disabled_handle_event(struct fallback_dispatch *fallback,
 }
 
 static void
-debounce_handle_event(struct fallback_dispatch *fallback,
+debounce_handle_event(struct debounce *debounce,
 		      enum debounce_event event,
 		      uint64_t time)
 {
-	enum debounce_state current = fallback->debounce.state;
+	enum debounce_state current = debounce->state;
 
 	if (event == DEBOUNCE_EVENT_OTHERBUTTON) {
-		debounce_cancel_timer(fallback);
-		debounce_cancel_timer_short(fallback);
+		debounce_cancel_timer(debounce);
+		debounce_cancel_timer_short(debounce);
 	}
 
 	switch(current) {
 	case DEBOUNCE_STATE_IS_UP:
-		debounce_is_up_handle_event(fallback, event, time);
+		debounce_is_up_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_DOWN:
-		debounce_is_down_handle_event(fallback, event, time);
+		debounce_is_down_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_DOWN_WAITING:
-		debounce_is_down_waiting_handle_event(fallback, event, time);
+		debounce_is_down_waiting_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_UP_DELAYING:
-		debounce_is_up_delaying_handle_event(fallback, event, time);
+		debounce_is_up_delaying_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_UP_DELAYING_SPURIOUS:
-		debounce_is_up_delaying_spurious_handle_event(fallback, event, time);
+		debounce_is_up_delaying_spurious_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_UP_DETECTING_SPURIOUS:
-		debounce_is_up_detecting_spurious_handle_event(fallback, event, time);
+		debounce_is_up_detecting_spurious_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_DOWN_DETECTING_SPURIOUS:
-		debounce_is_down_detecting_spurious_handle_event(fallback, event, time);
+		debounce_is_down_detecting_spurious_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_UP_WAITING:
-		debounce_is_up_waiting_handle_event(fallback, event, time);
+		debounce_is_up_waiting_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_IS_DOWN_DELAYING:
-		debounce_is_down_delaying_handle_event(fallback, event, time);
+		debounce_is_down_delaying_handle_event(debounce, event, time);
 		break;
 	case DEBOUNCE_STATE_DISABLED:
-		debounce_disabled_handle_event(fallback, event, time);
+		debounce_disabled_handle_event(debounce, event, time);
 		break;
 	}
 
-	evdev_log_debug(fallback->device,
+	evdev_log_debug(debounce->device,
 			"debounce state: %s → %s → %s\n",
 			debounce_state_to_str(current),
 			debounce_event_to_str(event),
-			debounce_state_to_str(fallback->debounce.state));
+			debounce_state_to_str(debounce->state));
 }
 
 void
-fallback_debounce_handle_state(struct fallback_dispatch *dispatch,
-			       uint64_t time)
+debounce_handle_state(struct debounce *debounce,
+		      uint64_t time)
 {
 	unsigned int changed[16] = {0}; /* event codes of changed buttons */
 	size_t nchanged = 0;
@@ -482,7 +482,7 @@ fallback_debounce_handle_state(struct fallback_dispatch *dispatch,
 		if (get_key_type(code) != KEY_TYPE_BUTTON)
 			continue;
 
-		if (hw_key_has_changed(dispatch, code))
+		if (debounce->key_ops->key_has_changed(debounce->device, code))
 			changed[nchanged++] = code;
 
 		/* If you manage to press more than 16 buttons in the same
@@ -494,8 +494,8 @@ fallback_debounce_handle_state(struct fallback_dispatch *dispatch,
 	/* If we have more than one button this frame or a different button,
 	 * flush the state machine with otherbutton */
 	if (nchanged > 1 ||
-	    changed[0] != dispatch->debounce.button_code) {
-		debounce_handle_event(dispatch,
+	    changed[0] != debounce->button_code) {
+		debounce_handle_event(debounce,
 				      DEBOUNCE_EVENT_OTHERBUTTON,
 				      time);
 		flushed = true;
@@ -509,19 +509,19 @@ fallback_debounce_handle_state(struct fallback_dispatch *dispatch,
 	 */
 
 	for (size_t i = 0; i < nchanged; i++) {
-		bool is_down = hw_is_key_down(dispatch, changed[i]);
+		bool is_down = debounce->key_ops->is_key_down(debounce->device, changed[i]);
 
 		if (flushed &&
-		    dispatch->debounce.state != DEBOUNCE_STATE_DISABLED) {
-			debounce_set_state(dispatch,
+		    debounce->state != DEBOUNCE_STATE_DISABLED) {
+			debounce_set_state(debounce,
 					   !is_down ?
 						   DEBOUNCE_STATE_IS_DOWN :
 						   DEBOUNCE_STATE_IS_UP);
 			flushed = false;
 		}
 
-		dispatch->debounce.button_code = changed[i];
-		debounce_handle_event(dispatch,
+		debounce->button_code = changed[i];
+		debounce_handle_event(debounce,
 				      is_down ?
 					      DEBOUNCE_EVENT_PRESS :
 					      DEBOUNCE_EVENT_RELEASE,
@@ -530,7 +530,7 @@ fallback_debounce_handle_state(struct fallback_dispatch *dispatch,
 		/* if we have more than one event, we flush the state
 		 * machine immediately after the event itself */
 		if (nchanged > 1) {
-			debounce_handle_event(dispatch,
+			debounce_handle_event(debounce,
 					      DEBOUNCE_EVENT_OTHERBUTTON,
 					      time);
 			flushed = true;
@@ -542,53 +542,53 @@ fallback_debounce_handle_state(struct fallback_dispatch *dispatch,
 static void
 debounce_timeout(uint64_t now, void *data)
 {
-	struct evdev_device *device = data;
-	struct fallback_dispatch *dispatch =
-		fallback_dispatch(device->dispatch);
+	struct debounce *debounce = data;
 
-	debounce_handle_event(dispatch, DEBOUNCE_EVENT_TIMEOUT, now);
+	debounce_handle_event(debounce, DEBOUNCE_EVENT_TIMEOUT, now);
 }
 
 static void
 debounce_timeout_short(uint64_t now, void *data)
 {
-	struct evdev_device *device = data;
-	struct fallback_dispatch *dispatch =
-		fallback_dispatch(device->dispatch);
+	struct debounce *debounce = data;
 
-	debounce_handle_event(dispatch, DEBOUNCE_EVENT_TIMEOUT_SHORT, now);
+	debounce_handle_event(debounce, DEBOUNCE_EVENT_TIMEOUT_SHORT, now);
 }
 
 void
-fallback_init_debounce(struct fallback_dispatch *dispatch)
+init_debounce(struct debounce *debounce,
+	      struct evdev_device *device,
+	      const struct debounce_key_ops *key_ops)
 {
-	struct evdev_device *device = dispatch->device;
 	char timer_name[64];
 
-	if (evdev_device_has_model_quirk(device, QUIRK_MODEL_BOUNCING_KEYS)) {
-		dispatch->debounce.state = DEBOUNCE_STATE_DISABLED;
+	debounce->device = device;
+	debounce->key_ops = key_ops;
+
+	if (evdev_device_has_model_quirk(debounce->device, QUIRK_MODEL_BOUNCING_KEYS)) {
+		debounce->state = DEBOUNCE_STATE_DISABLED;
 		return;
 	}
 
-	dispatch->debounce.state = DEBOUNCE_STATE_IS_UP;
+	debounce->state = DEBOUNCE_STATE_IS_UP;
 
 	snprintf(timer_name,
 		 sizeof(timer_name),
 		 "%s debounce short",
-		 evdev_device_get_sysname(device));
-	libinput_timer_init(&dispatch->debounce.timer_short,
-			    evdev_libinput_context(device),
+		 evdev_device_get_sysname(debounce->device));
+	libinput_timer_init(&debounce->timer_short,
+			    evdev_libinput_context(debounce->device),
 			    timer_name,
 			    debounce_timeout_short,
-			    device);
+			    debounce);
 
 	snprintf(timer_name,
 		 sizeof(timer_name),
 		 "%s debounce",
-		 evdev_device_get_sysname(device));
-	libinput_timer_init(&dispatch->debounce.timer,
-			    evdev_libinput_context(device),
+		 evdev_device_get_sysname(debounce->device));
+	libinput_timer_init(&debounce->timer,
+			    evdev_libinput_context(debounce->device),
 			    timer_name,
 			    debounce_timeout,
-			    device);
+			    debounce);
 }

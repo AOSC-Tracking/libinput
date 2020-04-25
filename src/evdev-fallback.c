@@ -1021,7 +1021,7 @@ fallback_handle_state(struct fallback_dispatch *dispatch,
 		}
 
 		if (want_debounce)
-			fallback_debounce_handle_state(dispatch, time);
+			debounce_handle_state(&dispatch->debounce, time); 
 
 		hw_key_update_last_state(dispatch);
 	}
@@ -1699,6 +1699,30 @@ fallback_init_arbitration(struct fallback_dispatch *dispatch,
 	dispatch->arbitration.in_arbitration = false;
 }
 
+static bool
+db_key_has_changed(struct evdev_device *device, int code)
+{
+	struct fallback_dispatch *dispatch =
+		(struct fallback_dispatch *)device->dispatch;
+
+	return hw_key_has_changed(dispatch, code);
+}
+
+static bool
+db_is_key_down(struct evdev_device *device, int code)
+{
+	struct fallback_dispatch *dispatch =
+		(struct fallback_dispatch *)device->dispatch;
+
+	return hw_is_key_down(dispatch, code);
+}
+
+/* Debounce callbacks. */
+static const struct debounce_key_ops db_key_ops = {
+	.key_has_changed = db_key_has_changed,
+	.is_key_down     = db_is_key_down
+};
+
 struct evdev_dispatch *
 fallback_dispatch_create(struct libinput_device *libinput_device)
 {
@@ -1754,7 +1778,7 @@ fallback_dispatch_create(struct libinput_device *libinput_device)
 					want_config);
 	}
 
-	fallback_init_debounce(dispatch);
+	init_debounce(&dispatch->debounce, device, &db_key_ops);
 	fallback_init_arbitration(dispatch, device);
 
 	return &dispatch->base;
