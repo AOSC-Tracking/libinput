@@ -429,13 +429,6 @@ tp_drag_dragging_handle_event(struct tp_dispatch *tp,
 
 	switch (event) {
 	case TAP_EVENT_TOUCH:
-		if (tp->tap.nfingers_down > 2) {
-			tp_tap_notify(tp,
-				      time,
-				      nfingers_tapped,
-				      LIBINPUT_BUTTON_STATE_RELEASED);
-			tp->tap.drag_state = DRAG_STATE_IDLE;
-		}
 		break;
 	case TAP_EVENT_RELEASE:
 		if (tp->tap.nfingers_down == 0) {
@@ -1024,7 +1017,10 @@ tp_tap_touch3_handle_event(struct tp_dispatch *tp,
 		tp_tap_move_to_dead(tp, t);
 		break;
 	case TAP_EVENT_TIMEOUT:
-		tp->tap.state = TAP_STATE_TOUCH_3_HOLD;
+		if (tp->tap.drag_state == DRAG_STATE_IDLE)
+			tp->tap.state = TAP_STATE_TOUCH_3_HOLD;
+		else
+			tp->tap.state = TAP_STATE_DEAD;
 		tp_tap_clear_timer(tp);
 		break;
 	case TAP_EVENT_RELEASE:
@@ -1111,7 +1107,10 @@ tp_tap_touch3_release_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_EVENT_TIMEOUT:
 		tp_drag_handle_event(tp, t, TAP_EVENT_3FGTAP, time);
-		tp->tap.state = TAP_STATE_TOUCH_2_HOLD;
+		if (tp->tap.drag_state == DRAG_STATE_IDLE)
+			tp->tap.state = TAP_STATE_TOUCH_2_HOLD;
+		else
+			tp->tap.state = TAP_STATE_DEAD;
 		break;
 	case TAP_EVENT_BUTTON:
 		tp_drag_handle_event(tp, t, TAP_EVENT_3FGTAP, time);
@@ -1156,7 +1155,10 @@ tp_tap_touch3_release2_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_EVENT_TIMEOUT:
 		tp_drag_handle_event(tp, t, TAP_EVENT_3FGTAP, time);
-		tp->tap.state = TAP_STATE_HOLD;
+		if (tp->tap.drag_state == DRAG_STATE_IDLE)
+			tp->tap.state = TAP_STATE_HOLD;
+		else
+			tp->tap.state = TAP_STATE_DEAD;
 		break;
 	case TAP_EVENT_BUTTON:
 		tp_drag_handle_event(tp, t, TAP_EVENT_3FGTAP, time);

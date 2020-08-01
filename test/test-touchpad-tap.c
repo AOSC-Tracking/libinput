@@ -1924,22 +1924,23 @@ START_TEST(touchpad_tap_n_drag_3fg_btntool)
 
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
 
-	/* Putting down a third finger should end the drag */
+	/* Putting down a third finger should not cause any events */
 	litest_event(dev, EV_KEY, BTN_TOOL_TRIPLETAP, 1);
 	litest_event(dev, EV_KEY, BTN_TOOL_DOUBLETAP, 0);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	libinput_dispatch(li);
 
-	litest_assert_button_event(li, button,
-				   LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_empty_queue(li);
 
-	/* Releasing the fingers should not cause any events */
+	/* Releasing the fingers should end the drag */
 	litest_event(dev, EV_KEY, BTN_TOOL_TRIPLETAP, 0);
 	litest_event(dev, EV_KEY, BTN_TOOL_DOUBLETAP, 1);
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 	litest_touch_up(dev, 1);
 	litest_touch_up(dev, 0);
 
+	litest_assert_button_event(li, button,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 	litest_assert_empty_queue(li);
 }
 END_TEST
@@ -2019,19 +2020,20 @@ START_TEST(touchpad_tap_n_drag_3fg)
 
 	litest_assert_only_typed_events(li, LIBINPUT_EVENT_POINTER_MOTION);
 
-	/* Putting down a third finger should end the drag */
+	/* Putting down a third finger should still do nothing */
 	litest_touch_down(dev, 2, 50, 50);
 
 	libinput_dispatch(li);
 
-	litest_assert_button_event(li, button,
-				   LIBINPUT_BUTTON_STATE_RELEASED);
+	litest_assert_empty_queue(li);
 
-	/* Releasing the fingers should not cause any events */
+	/* Releasing the fingers should end the drag */
 	litest_touch_up(dev, 2);
 	litest_touch_up(dev, 1);
 	litest_touch_up(dev, 0);
 
+	litest_assert_button_event(li, button,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 	litest_assert_empty_queue(li);
 }
 END_TEST
