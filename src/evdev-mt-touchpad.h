@@ -113,7 +113,8 @@ enum tp_tap_state {
 	TAP_STATE_TOUCH_3_HOLD,
 	TAP_STATE_TOUCH_3_RELEASE,
 	TAP_STATE_TOUCH_3_RELEASE_2,
-	TAP_STATE_DEAD, /**< finger count exceeded */
+	TAP_STATE_BUTTON, /**< clickpad button pressed */
+	TAP_STATE_DEAD, /**< clickpad button released, or finger moved */
 };
 
 enum tp_drag_state {
