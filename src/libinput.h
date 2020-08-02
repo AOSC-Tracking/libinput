@@ -4316,6 +4316,8 @@ libinput_device_group_get_user_data(struct libinput_device_group *group);
  *    - libinput_device_config_tap_set_enabled()
  *    - libinput_device_config_tap_set_drag_enabled()
  *    - libinput_device_config_tap_set_drag_lock_enabled()
+ *    - libinput_device_config_tap_set_hold_tap_enabled()
+ *    - libinput_device_config_tap_set_button_map()
  *    - libinput_device_config_click_set_method()
  *    - libinput_device_config_scroll_set_method()
  *    - libinput_device_config_dwt_set_enabled()
@@ -4693,6 +4695,97 @@ libinput_device_config_tap_get_drag_lock_enabled(struct libinput_device *device)
  */
 enum libinput_config_drag_lock_state
 libinput_device_config_tap_get_default_drag_lock_enabled(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * @since 1.18
+ */
+enum libinput_config_hold_tap_state {
+	/** Hold-and-tap is to be disabled, or is currently disabled */
+	LIBINPUT_CONFIG_HOLD_TAP_DISABLED,
+	/** Hold-and-tap is to be enabled, or is currently enabled */
+	LIBINPUT_CONFIG_HOLD_TAP_ENABLED,
+};
+
+/**
+ * @ingroup config
+ *
+ * Enable or disable hold-and-tap on this device. When enabled, tapping with
+ * additional fingers while other fingers are already held down performs a
+ * tap as if no fingers were held down. During a drag taps with the same
+ * number of fingers as used to start the drag are ignored. Starting a drag
+ * still requires lifting all fingers.
+ * When disabled, tapping with additional fingers generally has no effect,
+ * taps are meant to be performed from a neutral state.
+ *
+ * Enabling or disabling hold-and-tap may not take effect immediately,
+ * the device may wait until it is in a neutral state before applying any
+ * changes.
+ *
+ * Enabling hold-and-tap on a device that has tapping disabled is permitted,
+ * but has no effect until tapping is enabled.
+ *
+ * @param device The device to configure
+ * @param enable @ref LIBINPUT_CONFIG_HOLD_TAP_ENABLED to enable hold-and-tap
+ * or @ref LIBINPUT_CONFIG_HOLD_TAP_DISABLED to disable hold-and-tap
+ *
+ * @return A config status code. Disabling hold-and-tap on a device that does
+ * not support tapping always succeeds.
+ *
+ * @see libinput_device_config_tap_get_hold_tap_enabled
+ * @see libinput_device_config_tap_get_default_hold_tap_enabled
+ *
+ * @since 1.18
+ */
+enum libinput_config_status
+libinput_device_config_tap_set_hold_tap_enabled(struct libinput_device *device,
+						enum libinput_config_hold_tap_state enable);
+
+/**
+ * @ingroup config
+ *
+ * Check if hold-and-tap is enabled on this device. If the device does not
+ * support tapping, this function always returns
+ * @ref LIBINPUT_CONFIG_HOLD_TAP_DISABLED.
+ *
+ * Hold-and-tap may be enabled even when tapping is disabled.
+ *
+ * @param device The device to configure
+ *
+ * @retval LIBINPUT_CONFIG_HOLD_TAP_ENABLED If hold-and-tap is currently enabled
+ * @retval LIBINPUT_CONFIG_HOLD_TAP_DISABLED If hold-and-tap is currently
+ * disabled
+ *
+ * @see libinput_device_config_tap_set_hold_tap_enabled
+ * @see libinput_device_config_tap_get_default_hold_tap_enabled
+ *
+ * @since 1.18
+ */
+enum libinput_config_hold_tap_state
+libinput_device_config_tap_get_hold_tap_enabled(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Check if hold-and-tap is enabled by default on this device. If the device
+ * does not support tapping, this function always returns
+ * @ref LIBINPUT_CONFIG_HOLD_TAP_DISABLED.
+ *
+ * @param device The device to configure
+ *
+ * @retval LIBINPUT_CONFIG_HOLD_TAP_ENABLED If hold-and-tap is enabled by
+ * default
+ * @retval LIBINPUT_CONFIG_HOLD_TAP_DISABLED If hold-and-tap is disabled by
+ * default
+ *
+ * @see libinput_device_config_tap_set_hold_tap_enabled
+ * @see libinput_device_config_tap_get_hold_tap_enabled
+ *
+ * @since 1.18
+ */
+enum libinput_config_hold_tap_state
+libinput_device_config_tap_get_default_hold_tap_enabled(struct libinput_device *device);
 
 /**
  * @ingroup config

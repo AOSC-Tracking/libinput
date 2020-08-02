@@ -29,6 +29,7 @@ options exposed by libinput are:
 - a toggle to enable/disable tapping
 - a toggle to enable/disable tap-and-drag, see :ref:`tapndrag`.
 - a toggle to enable/disable tap-and-drag drag lock see :ref:`tapndrag`
+- a toggle to enable/disable hold-and-tap
 - The default order is 1, 2, 3 finger tap mapping to left, right, middle
   click, respectively. This order can be changed to left, middle, right click,
   respectively.

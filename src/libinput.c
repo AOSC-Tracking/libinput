@@ -69,6 +69,7 @@ ASSERT_INT_SIZE(enum libinput_config_tap_state);
 ASSERT_INT_SIZE(enum libinput_config_tap_button_map);
 ASSERT_INT_SIZE(enum libinput_config_drag_state);
 ASSERT_INT_SIZE(enum libinput_config_drag_lock_state);
+ASSERT_INT_SIZE(enum libinput_config_hold_tap_state);
 ASSERT_INT_SIZE(enum libinput_config_send_events_mode);
 ASSERT_INT_SIZE(enum libinput_config_accel_profile);
 ASSERT_INT_SIZE(enum libinput_config_click_method);
@@ -3796,6 +3797,39 @@ libinput_device_config_tap_get_default_drag_lock_enabled(struct libinput_device 
 		return LIBINPUT_CONFIG_DRAG_LOCK_DISABLED;
 
 	return device->config.tap->get_default_draglock_enabled(device);
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_tap_set_hold_tap_enabled(struct libinput_device *device,
+						enum libinput_config_hold_tap_state enable)
+{
+	if (enable != LIBINPUT_CONFIG_HOLD_TAP_ENABLED &&
+	    enable != LIBINPUT_CONFIG_HOLD_TAP_DISABLED)
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (libinput_device_config_tap_get_finger_count(device) == 0)
+		return enable ? LIBINPUT_CONFIG_STATUS_UNSUPPORTED :
+				LIBINPUT_CONFIG_STATUS_SUCCESS;
+
+	return device->config.tap->set_hold_tap_enabled(device, enable);
+}
+
+LIBINPUT_EXPORT enum libinput_config_hold_tap_state
+libinput_device_config_tap_get_hold_tap_enabled(struct libinput_device *device)
+{
+	if (libinput_device_config_tap_get_finger_count(device) == 0)
+		return LIBINPUT_CONFIG_HOLD_TAP_DISABLED;
+
+	return device->config.tap->get_hold_tap_enabled(device);
+}
+
+LIBINPUT_EXPORT enum libinput_config_hold_tap_state
+libinput_device_config_tap_get_default_hold_tap_enabled(struct libinput_device *device)
+{
+	if (libinput_device_config_tap_get_finger_count(device) == 0)
+		return LIBINPUT_CONFIG_HOLD_TAP_DISABLED;
+
+	return device->config.tap->get_default_hold_tap_enabled(device);
 }
 
 LIBINPUT_EXPORT int

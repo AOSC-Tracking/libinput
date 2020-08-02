@@ -1101,6 +1101,30 @@ litest_disable_drag_lock(struct libinput_device *device)
 }
 
 static inline void
+litest_enable_hold_tap(struct libinput_device *device)
+{
+	enum libinput_config_status status, expected;
+
+	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								 LIBINPUT_CONFIG_HOLD_TAP_ENABLED);
+
+	litest_assert_int_eq(status, expected);
+}
+
+static inline void
+litest_disable_hold_tap(struct libinput_device *device)
+{
+	enum libinput_config_status status, expected;
+
+	expected = LIBINPUT_CONFIG_STATUS_SUCCESS;
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								 LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+
+	litest_assert_int_eq(status, expected);
+}
+
+static inline void
 litest_enable_middleemu(struct litest_device *dev)
 {
 	struct libinput_device *device = dev->libinput_device;

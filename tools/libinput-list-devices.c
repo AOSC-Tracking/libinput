@@ -72,6 +72,18 @@ draglock_default(struct libinput_device *device)
 	return "disabled";
 }
 
+static const char *
+hold_tap_default(struct libinput_device *device)
+{
+	if (!libinput_device_config_tap_get_finger_count(device))
+		return "n/a";
+
+	if (libinput_device_config_tap_get_default_hold_tap_enabled(device))
+		return "enabled";
+	else
+		return "disabled";
+}
+
 static const char*
 left_handed_default(struct libinput_device *device)
 {
@@ -328,6 +340,7 @@ print_device_notify(struct libinput_event *ev)
 	printf("Tap-to-click:     %s\n", tap_default(dev));
 	printf("Tap-and-drag:     %s\n",  drag_default(dev));
 	printf("Tap drag lock:    %s\n", draglock_default(dev));
+	printf("Hold-and-tap:     %s\n", hold_tap_default(dev));
 	printf("Left-handed:      %s\n", left_handed_default(dev));
 	printf("Nat.scrolling:    %s\n", nat_scroll_default(dev));
 	printf("Middle emulation: %s\n", middle_emulation_default(dev));

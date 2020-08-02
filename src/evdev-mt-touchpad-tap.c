@@ -1487,10 +1487,22 @@ tp_tap_update_map(struct tp_dispatch *tp)
 		tp->tap.map = tp->tap.want_map;
 }
 
+static inline void
+tp_tap_update_hold_tap(struct tp_dispatch *tp)
+{
+	if (tp->tap.state != TAP_STATE_IDLE ||
+	    tp->tap.drag_state != DRAG_STATE_IDLE)
+		return;
+
+	if (tp->tap.hold_tap_enabled != tp->tap.want_hold_tap_enabled)
+		tp->tap.hold_tap_enabled = tp->tap.want_hold_tap_enabled;
+}
+
 void
 tp_tap_post_process_state(struct tp_dispatch *tp)
 {
 	tp_tap_update_map(tp);
+	tp_tap_update_hold_tap(tp);
 }
 
 static void
@@ -1694,6 +1706,43 @@ tp_tap_config_get_default_draglock_enabled(struct libinput_device *device)
 	return tp_drag_lock_default(evdev);
 }
 
+static enum libinput_config_status
+tp_tap_config_set_hold_tap_enabled(struct libinput_device *device,
+				   enum libinput_config_hold_tap_state enabled)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	tp->tap.want_hold_tap_enabled = enabled;
+
+	tp_tap_update_hold_tap(tp);
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_hold_tap_state
+tp_tap_config_get_hold_tap_enabled(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	return tp->tap.want_hold_tap_enabled;
+}
+
+static inline enum libinput_config_hold_tap_state
+tp_hold_tap_default(struct evdev_device *device)
+{
+	return LIBINPUT_CONFIG_HOLD_TAP_DISABLED;
+}
+
+static enum libinput_config_hold_tap_state
+tp_tap_config_get_default_hold_tap_enabled(struct libinput_device *device)
+{
+	struct evdev_device *evdev = evdev_device(device);
+
+	return tp_hold_tap_default(evdev);
+}
+
 void
 tp_init_tap(struct tp_dispatch *tp)
 {
@@ -1712,6 +1761,9 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.config.set_draglock_enabled = tp_tap_config_set_draglock_enabled;
 	tp->tap.config.get_draglock_enabled = tp_tap_config_get_draglock_enabled;
 	tp->tap.config.get_default_draglock_enabled = tp_tap_config_get_default_draglock_enabled;
+	tp->tap.config.set_hold_tap_enabled = tp_tap_config_set_hold_tap_enabled;
+	tp->tap.config.get_hold_tap_enabled = tp_tap_config_get_hold_tap_enabled;
+	tp->tap.config.get_default_hold_tap_enabled = tp_tap_config_get_default_hold_tap_enabled;
 	tp->device->base.config.tap = &tp->tap.config;
 
 	tp->tap.state = TAP_STATE_IDLE;
@@ -1721,6 +1773,8 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.want_map = tp->tap.map;
 	tp->tap.drag_enabled = tp_drag_default(tp->device);
 	tp->tap.drag_lock_enabled = tp_drag_lock_default(tp->device);
+	tp->tap.hold_tap_enabled = tp_hold_tap_default(tp->device);
+	tp->tap.want_hold_tap_enabled = tp->tap.hold_tap_enabled;
 
 	snprintf(timer_name,
 		 sizeof(timer_name),

@@ -4190,6 +4190,60 @@ START_TEST(touchpad_drag_lock_default_unavailable)
 }
 END_TEST
 
+START_TEST(touchpad_hold_tap_default_disabled)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	enum libinput_config_status status;
+
+	ck_assert_int_eq(libinput_device_config_tap_get_hold_tap_enabled(device),
+			 LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+	ck_assert_int_eq(libinput_device_config_tap_get_default_hold_tap_enabled(device),
+			 LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  LIBINPUT_CONFIG_HOLD_TAP_ENABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  LIBINPUT_CONFIG_HOLD_TAP_ENABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  3);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_INVALID);
+}
+END_TEST
+
+START_TEST(touchpad_hold_tap_default_unavailable)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput_device *device = dev->libinput_device;
+	enum libinput_config_status status;
+
+	ck_assert_int_eq(libinput_device_config_tap_get_hold_tap_enabled(device),
+			 LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+	ck_assert_int_eq(libinput_device_config_tap_get_default_hold_tap_enabled(device),
+			 LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  LIBINPUT_CONFIG_HOLD_TAP_ENABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_UNSUPPORTED);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  LIBINPUT_CONFIG_HOLD_TAP_DISABLED);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_SUCCESS);
+
+	status = libinput_device_config_tap_set_hold_tap_enabled(device,
+								  3);
+	ck_assert_int_eq(status, LIBINPUT_CONFIG_STATUS_INVALID);
+}
+END_TEST
+
 static inline bool
 touchpad_has_palm_pressure(struct litest_device *dev)
 {
@@ -5697,6 +5751,9 @@ TEST_COLLECTION(touchpad_tap)
 	litest_add(touchpad_tap_set_map_no_tapping, LITEST_ANY, LITEST_TOUCHPAD);
 	litest_add(touchpad_tap_get_map_no_tapping, LITEST_ANY, LITEST_TOUCHPAD);
 	litest_add(touchpad_tap_map_delayed, LITEST_TOUCHPAD, LITEST_SINGLE_TOUCH|LITEST_SEMI_MT);
+
+	litest_add(touchpad_hold_tap_default_disabled, LITEST_TOUCHPAD, LITEST_ANY);
+	litest_add(touchpad_hold_tap_default_unavailable, LITEST_ANY, LITEST_TOUCHPAD);
 
 	litest_add(clickpad_1fg_tap_click, LITEST_CLICKPAD, LITEST_ANY);
 	litest_add(clickpad_2fg_tap_click, LITEST_CLICKPAD, LITEST_SINGLE_TOUCH|LITEST_APPLE_CLICKPAD);

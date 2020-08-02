@@ -40,6 +40,8 @@ enum configuration_options {
 	OPT_DRAG_DISABLE,
 	OPT_DRAG_LOCK_ENABLE,
 	OPT_DRAG_LOCK_DISABLE,
+	OPT_HOLD_TAP_ENABLE,
+	OPT_HOLD_TAP_DISABLE,
 	OPT_NATURAL_SCROLL_ENABLE,
 	OPT_NATURAL_SCROLL_DISABLE,
 	OPT_LEFT_HANDED_ENABLE,
@@ -67,6 +69,8 @@ enum configuration_options {
 	{ "disable-drag",              no_argument,       0, OPT_DRAG_DISABLE }, \
 	{ "enable-drag-lock",          no_argument,       0, OPT_DRAG_LOCK_ENABLE }, \
 	{ "disable-drag-lock",         no_argument,       0, OPT_DRAG_LOCK_DISABLE }, \
+	{ "enable-hold-tap",           no_argument,       0, OPT_HOLD_TAP_ENABLE }, \
+	{ "disable-hold-tap",          no_argument,       0, OPT_HOLD_TAP_DISABLE }, \
 	{ "enable-natural-scrolling",  no_argument,       0, OPT_NATURAL_SCROLL_ENABLE }, \
 	{ "disable-natural-scrolling", no_argument,       0, OPT_NATURAL_SCROLL_DISABLE }, \
 	{ "enable-left-handed",        no_argument,       0, OPT_LEFT_HANDED_ENABLE }, \
@@ -97,6 +101,7 @@ struct tools_options {
 	int tapping;
 	int drag;
 	int drag_lock;
+	int hold_tap;
 	int natural_scroll;
 	int left_handed;
 	int middlebutton;

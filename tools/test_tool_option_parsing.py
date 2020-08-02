@@ -206,6 +206,7 @@ options = {
         "tap",
         "drag",
         "drag-lock",
+        "hold-tap",
         "middlebutton",
         "natural-scrolling",
         "left-handed",

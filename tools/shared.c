@@ -103,6 +103,7 @@ tools_init_options(struct tools_options *options)
 	options->tap_map = -1;
 	options->drag = -1;
 	options->drag_lock = -1;
+	options->hold_tap = -1;
 	options->natural_scroll = -1;
 	options->left_handed = -1;
 	options->middlebutton = -1;
@@ -150,6 +151,12 @@ tools_parse_option(int option,
 		break;
 	case OPT_DRAG_LOCK_DISABLE:
 		options->drag_lock = 0;
+		break;
+	case OPT_HOLD_TAP_ENABLE:
+		options->hold_tap = 1;
+		break;
+	case OPT_HOLD_TAP_DISABLE:
+		options->hold_tap = 0;
 		break;
 	case OPT_NATURAL_SCROLL_ENABLE:
 		options->natural_scroll = 1;
@@ -425,6 +432,9 @@ tools_device_apply_config(struct libinput_device *device,
 	if (options->drag_lock != -1)
 		libinput_device_config_tap_set_drag_lock_enabled(device,
 								 options->drag_lock);
+	if (options->hold_tap != -1)
+		libinput_device_config_tap_set_hold_tap_enabled(device,
+								options->hold_tap);
 	if (options->natural_scroll != -1)
 		libinput_device_config_scroll_set_natural_scroll_enabled(device,
 									 options->natural_scroll);

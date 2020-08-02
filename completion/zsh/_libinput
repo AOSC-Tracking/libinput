@@ -67,6 +67,9 @@ __all_seats()
 		+ '(drag-lock)' \
 		'--enable-drag-lock[Enable drag-lock]' \
 		'--disable-drag-lock[Disable drag-lock]' \
+		+ '(hold-and-tap)' \
+		'--enable-hold-tap[Enable hold-and-tap]' \
+		'--disable-hold-tap[Disable hold-and-tap]' \
 		+ '(natural-scrolling)' \
 		'--enable-natural-scrolling[Enable natural scrolling]' \
 		'--disable-natural-scrolling[Disable natural scrolling]' \

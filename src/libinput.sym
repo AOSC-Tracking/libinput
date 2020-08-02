@@ -314,3 +314,9 @@ LIBINPUT_1.15 {
 	libinput_event_tablet_pad_get_key;
 	libinput_event_tablet_pad_get_key_state;
 } LIBINPUT_1.14;
+
+LIBINPUT_1.18 {
+	libinput_device_config_tap_set_hold_tap_enabled;
+	libinput_device_config_tap_get_hold_tap_enabled;
+	libinput_device_config_tap_get_default_hold_tap_enabled;
+} LIBINPUT_1.15;
