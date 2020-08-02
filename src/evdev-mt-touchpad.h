@@ -140,7 +140,8 @@ enum tp_drag_state {
 enum tp_tap_touch_state {
 	TAP_TOUCH_STATE_IDLE = 16,	/**< not in touch */
 	TAP_TOUCH_STATE_TOUCH,		/**< touching, may tap */
-	TAP_TOUCH_STATE_DEAD,		/**< exceeded motion/timeout */
+	TAP_TOUCH_STATE_DEAD,		/**< exceeded motion,
+					     or clickpad button pressed */
 };
 
 /* For edge scrolling, so we only care about right and bottom */
