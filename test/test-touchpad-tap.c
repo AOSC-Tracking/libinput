@@ -5065,6 +5065,14 @@ START_TEST(touchpad_tap_palm_on_touch_4)
 	litest_touch_up(dev, (this + 2) % 4);
 	litest_touch_up(dev, (this + 3) % 4);
 
+	litest_assert_button_event(li,
+				   BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_PRESSED);
+	litest_timeout_tap();
+	litest_assert_button_event(li,
+				   BTN_MIDDLE,
+				   LIBINPUT_BUTTON_STATE_RELEASED);
+
 	litest_assert_empty_queue(li);
 }
 END_TEST
