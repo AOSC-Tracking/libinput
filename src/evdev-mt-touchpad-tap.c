@@ -2023,7 +2023,6 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 		tp_tap_clear_timer(tp);
 
 	if ((tp->tap.state == TAP_STATE_IDLE ||
-	     tp->tap.state == TAP_STATE_BUTTON ||
 	     tp->tap.state == TAP_STATE_DEAD))
 		tp_tap_kill_all_touches(tp, NULL);
 }
