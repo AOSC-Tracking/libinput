@@ -33,7 +33,6 @@
 #define DEFAULT_DRAG_TIMEOUT_PERIOD_BASE ms2us(160)
 #define DEFAULT_DRAG_TIMEOUT_PERIOD_PERFINGER ms2us(20)
 #define DEFAULT_DRAGLOCK_TIMEOUT_PERIOD ms2us(300)
-#define DEFAULT_TAP_MOVE_THRESHOLD 1.3 /* mm */
 
 enum tap_event {
 	TAP_EVENT_TOUCH = 12,
@@ -223,8 +222,10 @@ tp_tap_kill_all_touches(struct tp_dispatch *tp,
 {
 	struct tp_touch *t;
 	tp_for_each_touch(tp, t) {
-		if (t != except && t->tap.state == TAP_TOUCH_STATE_TOUCH)
+		if (t != except && t->tap.state == TAP_TOUCH_STATE_TOUCH) {
 			t->tap.state = TAP_TOUCH_STATE_DEAD;
+			tp_unpin_finger(tp, t, PINNED_STATE_TAP);
+		}
 	}
 }
 
@@ -2031,9 +2032,6 @@ static bool
 tp_tap_exceeds_motion_threshold(struct tp_dispatch *tp,
 				struct tp_touch *t)
 {
-	struct phys_coords mm =
-		tp_phys_delta(tp, device_delta(t->point, t->tap.initial));
-
 	/* if we have more fingers down than slots, we know that synaptics
 	 * touchpads are likely to give us pointer jumps.
 	 * This triggers the movement threshold, making three-finger taps
@@ -2055,7 +2053,9 @@ tp_tap_exceeds_motion_threshold(struct tp_dispatch *tp,
 	if (tp->semi_mt && tp->nfingers_down != tp->old_nfingers_down)
 		return false;
 
-	return length_in_mm(mm) > DEFAULT_TAP_MOVE_THRESHOLD;
+	/* touch pinning already checks if touches move significantly
+	 * from their starting position, let's re-use that result */
+	return !(t->pinned.state & PINNED_STATE_TAP);
 }
 
 static bool
@@ -2064,14 +2064,13 @@ tp_tap_enabled(struct tp_dispatch *tp)
 	return tp->tap.enabled && !tp->tap.suspended;
 }
 
-int
+void
 tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 {
 	struct tp_touch *t;
-	int filter_motion = 0;
 
 	if (!tp_tap_enabled(tp))
-		return 0;
+		return;
 
 	/* Handle queued button events from clickpads. For touchpads with
 	 * separate physical buttons, ignore button pressed events so they don't
@@ -2116,7 +2115,7 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 			}
 
 			t->tap.state = TAP_TOUCH_STATE_TOUCH;
-			t->tap.initial = t->point;
+			tp_pin_finger(tp, t, PINNED_STATE_TAP);
 			tp->tap.nfingers_down++;
 			tp_tap_handle_event(tp, t, TAP_EVENT_TOUCH, time);
 
@@ -2149,47 +2148,6 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 		}
 	}
 
-	/**
-	 * In any state where motion exceeding the move threshold would
-	 * move to the next state, filter that motion until we actually
-	 * exceed it. This prevents small motion events while we're waiting
-	 * on a decision if a tap is a tap.
-	 */
-	switch (tp->tap.drag_state) {
-	case DRAG_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP:
-	case DRAG_STATE_2FGTAP_DRAGGING_OR_DOUBLETAP:
-	case DRAG_STATE_3FGTAP_DRAGGING_OR_DOUBLETAP:
-	case DRAG_STATE_1FGTAP_DRAGGING_OR_1FGTAP_TAPPED:
-	case DRAG_STATE_1FGTAP_DRAGGING_OR_2FGTAP_TAPPED:
-	case DRAG_STATE_1FGTAP_DRAGGING_OR_3FGTAP_TAPPED:
-	case DRAG_STATE_2FGTAP_DRAGGING_OR_1FGTAP_TAPPED:
-	case DRAG_STATE_2FGTAP_DRAGGING_OR_2FGTAP_TAPPED:
-	case DRAG_STATE_2FGTAP_DRAGGING_OR_3FGTAP_TAPPED:
-	case DRAG_STATE_3FGTAP_DRAGGING_OR_1FGTAP_TAPPED:
-	case DRAG_STATE_3FGTAP_DRAGGING_OR_2FGTAP_TAPPED:
-	case DRAG_STATE_3FGTAP_DRAGGING_OR_3FGTAP_TAPPED:
-	case DRAG_STATE_1FGTAP_DRAGLOCK_CONTINUE:
-	case DRAG_STATE_2FGTAP_DRAGLOCK_CONTINUE:
-	case DRAG_STATE_3FGTAP_DRAGLOCK_CONTINUE:
-		filter_motion = 1;
-		break;
-	case DRAG_STATE_IDLE:
-		switch (tp->tap.state) {
-		case TAP_STATE_TOUCH:
-		case TAP_STATE_TOUCH_2:
-		case TAP_STATE_TOUCH_2_RELEASE:
-		case TAP_STATE_TOUCH_3:
-		case TAP_STATE_TOUCH_3_RELEASE:
-		case TAP_STATE_TOUCH_3_RELEASE_2:
-			filter_motion = 1;
-			break;
-		default:
-			break;
-		}
-	default:
-		break;
-	}
-
 	assert(tp->tap.nfingers_down <= tp->nfingers_down);
 	if (tp->nfingers_down == 0 ||
 	    tp->tap.state == TAP_STATE_IDLE ||
@@ -2197,8 +2155,6 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 	    tp->tap.drag_state == DRAG_STATE_2FGTAP_DRAGLOCK_WAIT ||
 	    tp->tap.drag_state == DRAG_STATE_3FGTAP_DRAGLOCK_WAIT)
 		assert(tp->tap.nfingers_down == 0);
-
-	return filter_motion;
 }
 
 static inline void
@@ -2259,6 +2215,7 @@ tp_tap_enabled_update(struct tp_dispatch *tp, bool suspended, bool enabled, uint
 
 			t->tap.is_palm = true;
 			t->tap.state = TAP_TOUCH_STATE_DEAD;
+			tp_unpin_finger(tp, t, PINNED_STATE_TAP);
 		}
 
 		tp->tap.state = TAP_STATE_IDLE;
@@ -2538,6 +2495,7 @@ tp_release_all_taps(struct tp_dispatch *tp, uint64_t now)
 
 		t->tap.is_palm = true;
 		t->tap.state = TAP_TOUCH_STATE_DEAD;
+		tp_unpin_finger(tp, t, PINNED_STATE_TAP);
 	}
 
 	tp->tap.state = TAP_STATE_IDLE;

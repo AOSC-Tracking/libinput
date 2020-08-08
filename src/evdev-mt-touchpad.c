@@ -339,7 +339,7 @@ tp_new_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->was_down = false;
 	t->palm.state = PALM_NONE;
 	t->state = TOUCH_HOVERING;
-	t->pinned.is_pinned = false;
+	t->pinned.state = PINNED_STATE_NONE;
 	t->speed.last_speed = 0;
 	t->speed.exceeded_count = 0;
 	t->hysteresis.x_motion_history = 0;
@@ -432,7 +432,7 @@ tp_end_touch(struct tp_dispatch *tp, struct tp_touch *t, uint64_t time)
 	t->dirty = true;
 	t->palm.state = PALM_NONE;
 	t->state = TOUCH_END;
-	t->pinned.is_pinned = false;
+	t->pinned.state = PINNED_STATE_NONE;
 	t->palm.time = 0;
 	t->speed.exceeded_count = 0;
 	tp->queued |= TOUCHPAD_EVENT_MOTION;
@@ -780,12 +780,12 @@ tp_process_msc(struct tp_dispatch *tp,
 }
 
 static void
-tp_unpin_finger(const struct tp_dispatch *tp, struct tp_touch *t)
+tp_unpin_finger_move(const struct tp_dispatch *tp, struct tp_touch *t)
 {
 	struct phys_coords mm;
 	struct device_coords delta;
 
-	if (!t->pinned.is_pinned)
+	if (t->pinned.state == PINNED_STATE_NONE)
 		return;
 
 	delta.x = abs(t->point.x - t->pinned.center.x);
@@ -795,19 +795,8 @@ tp_unpin_finger(const struct tp_dispatch *tp, struct tp_touch *t)
 
 	/* 1.5mm movement -> unpin */
 	if (hypot(mm.x, mm.y) >= 1.5) {
-		t->pinned.is_pinned = false;
+		t->pinned.state = PINNED_STATE_NONE;
 		return;
-	}
-}
-
-static void
-tp_pin_fingers(struct tp_dispatch *tp)
-{
-	struct tp_touch *t;
-
-	tp_for_each_touch(tp, t) {
-		t->pinned.is_pinned = true;
-		t->pinned.center = t->point;
 	}
 }
 
@@ -816,7 +805,7 @@ tp_touch_active(const struct tp_dispatch *tp, const struct tp_touch *t)
 {
 	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
 		t->palm.state == PALM_NONE &&
-		!t->pinned.is_pinned &&
+		t->pinned.state == PINNED_STATE_NONE &&
 		!tp_thumb_ignored(tp, t) &&
 		tp_button_touch_active(tp, t) &&
 		tp_edge_scroll_touch_active(tp, t);
@@ -827,7 +816,7 @@ tp_touch_active_for_gesture(const struct tp_dispatch *tp, const struct tp_touch 
 {
 	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
 		t->palm.state == PALM_NONE &&
-		!t->pinned.is_pinned &&
+		t->pinned.state == PINNED_STATE_NONE &&
 		!tp_thumb_ignored_for_gesture(tp, t) &&
 		tp_button_touch_active(tp, t) &&
 		tp_edge_scroll_touch_active(tp, t);
@@ -1787,7 +1776,7 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 
 		tp_calculate_motion_speed(tp, t, time);
 
-		tp_unpin_finger(tp, t);
+		tp_unpin_finger_move(tp, t);
 
 		if (t->state == TOUCH_BEGIN) {
 			have_new_touch = true;
@@ -1805,18 +1794,6 @@ tp_process_state(struct tp_dispatch *tp, uint64_t time)
 
 	tp_button_handle_state(tp, time);
 	tp_edge_scroll_handle_state(tp, time);
-
-	/*
-	 * We have a physical button down event on a clickpad. To avoid
-	 * spurious pointer moves by the clicking finger we pin all fingers.
-	 * We unpin fingers when they move more then a certain threshold to
-	 * to allow drag and drop.
-	 */
-	if ((tp->queued & TOUCHPAD_EVENT_BUTTON_PRESS) &&
-	    tp->buttons.is_clickpad)
-		tp_pin_fingers(tp);
-
-	tp_gesture_handle_state(tp, time);
 }
 
 static void
@@ -1855,19 +1832,18 @@ tp_post_process_state(struct tp_dispatch *tp, uint64_t time)
 static void
 tp_post_events(struct tp_dispatch *tp, uint64_t time)
 {
-	bool ignore_motion = false;
-
 	/* Only post (top) button events while suspended */
 	if (tp->device->is_suspended) {
 		tp_post_button_events(tp, time);
 		return;
 	}
 
-	ignore_motion |= tp_tap_handle_state(tp, time);
-	ignore_motion |= tp_post_button_events(tp, time);
+	tp_tap_handle_state(tp, time);
+	tp_post_button_events(tp, time);
 
-	if (ignore_motion ||
-	    tp->palm.trackpoint_active ||
+	tp_gesture_handle_state(tp, time);
+
+	if (tp->palm.trackpoint_active ||
 	    tp->dwt.keyboard_active) {
 		tp_edge_scroll_stop_events(tp, time);
 		tp_gesture_cancel(tp, time);

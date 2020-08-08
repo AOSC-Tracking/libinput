@@ -622,6 +622,14 @@ tp_process_button(struct tp_dispatch *tp,
 	if (e->value) {
 		tp->buttons.state |= mask;
 		tp->queued |= TOUCHPAD_EVENT_BUTTON_PRESS;
+		/*
+		 * We have a physical button down event on a clickpad. To avoid
+		 * spurious pointer moves by the clicking finger we pin all fingers.
+		 * We unpin fingers when they move more than a certain threshold to
+		 * to allow drag and drop.
+		 */
+		if (tp->buttons.is_clickpad)
+			tp_pin_fingers(tp, PINNED_STATE_BUTTON, false);
 	} else {
 		tp->buttons.state &= ~mask;
 		tp->queued |= TOUCHPAD_EVENT_BUTTON_RELEASE;
@@ -1029,7 +1037,7 @@ tp_remove_buttons(struct tp_dispatch *tp)
 	}
 }
 
-static int
+static void
 tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 {
 	uint32_t current, old, button;
@@ -1060,8 +1068,6 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 		current >>= 1;
 		old >>= 1;
 	}
-
-	return 0;
 }
 
 static inline bool
@@ -1181,10 +1187,18 @@ out:
 	else
 		button = button_map[tp->tap.map][nfingers - 1];
 
+	if (only_taps) {
+		/* We pinned all touches upon seeing the button event,
+		 * but counted only tapping touches for this click.
+		 * Unpin, and re-pin taps only */
+		tp_unpin_fingers(tp, PINNED_STATE_BUTTON);
+		tp_pin_fingers(tp, PINNED_STATE_BUTTON, true);
+	}
+
 	return button;
 }
 
-static int
+static void
 tp_notify_clickpadbutton(struct tp_dispatch *tp,
 			 uint64_t time,
 			 uint32_t button,
@@ -1209,11 +1223,11 @@ tp_notify_clickpadbutton(struct tp_dispatch *tp,
 						     tp->buttons.trackpoint,
 						     &syn_report,
 						     time);
-			return 1;
+			return;
 		}
 		/* Ignore button events not for the trackpoint while suspended */
 		if (tp->device->is_suspended)
-			return 0;
+			return;
 	}
 
 	/* A button click always terminates edge scrolling, even if we
@@ -1230,14 +1244,13 @@ tp_notify_clickpadbutton(struct tp_dispatch *tp,
 		tp->buttons.active = button;
 
 		if (!button)
-			return 0;
+			return;
 	}
 
 	evdev_pointer_notify_button(tp->device, time, button, state);
-	return 1;
 }
 
-static int
+static void
 tp_post_clickpadbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 {
 	uint32_t current, old, button, is_top;
@@ -1250,7 +1263,7 @@ tp_post_clickpadbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 	is_top = 0;
 
 	if (!tp->buttons.click_pending && current == old)
-		return 0;
+		return;
 
 	if (current) {
 		struct tp_touch *t;
@@ -1288,7 +1301,7 @@ tp_post_clickpadbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 		    tp->buttons.click_method != LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER) {
 			/* No touches, wait for a touch before processing */
 			tp->buttons.click_pending = true;
-			return 0;
+			return;
 		}
 
 		if ((tp->device->middlebutton.enabled || is_top) &&
@@ -1325,21 +1338,19 @@ tp_post_clickpadbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 	tp->buttons.click_pending = false;
 
 	if (button)
-		return tp_notify_clickpadbutton(tp,
-						time,
-						button,
-						is_top,
-						state);
-	return 0;
+		tp_notify_clickpadbutton(tp, time,
+					 button, is_top,
+					 state);
 }
 
-int
+void
 tp_post_button_events(struct tp_dispatch *tp, uint64_t time)
 {
 	if (tp->buttons.is_clickpad ||
 	    tp->device->model_flags & EVDEV_MODEL_APPLE_TOUCHPAD_ONEBUTTON)
-		return tp_post_clickpadbutton_buttons(tp, time);
-	return tp_post_physical_buttons(tp, time);
+		tp_post_clickpadbutton_buttons(tp, time);
+	else
+		tp_post_physical_buttons(tp, time);
 }
 
 bool

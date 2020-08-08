@@ -196,6 +196,12 @@ enum tp_jump_state {
 	JUMP_STATE_EXPECT_DELAY,
 };
 
+enum tp_pinned_state {
+	PINNED_STATE_NONE	= 0,
+	PINNED_STATE_TAP	= bit(0),
+	PINNED_STATE_BUTTON	= bit(1),
+};
+
 struct tp_touch {
 	struct tp_dispatch *tp;
 	unsigned int index;
@@ -243,7 +249,7 @@ struct tp_touch {
 	 * moves more than a threshold away from the original coordinates
 	 */
 	struct {
-		bool is_pinned;
+		enum tp_pinned_state state;
 		struct device_coords center;
 	} pinned;
 
@@ -260,7 +266,6 @@ struct tp_touch {
 
 	struct {
 		enum tp_tap_touch_state state;
-		struct device_coords initial;
 		bool is_thumb;
 		bool is_palm;
 	} tap;
@@ -608,6 +613,45 @@ tp_scale_to_xaxis(const struct tp_dispatch *tp,
 	return raw;
 }
 
+static inline void
+tp_unpin_finger(struct tp_dispatch *tp, struct tp_touch *t,
+		enum tp_pinned_state reason)
+{
+	t->pinned.state &= ~reason;
+}
+
+static inline void
+tp_unpin_fingers(struct tp_dispatch *tp, enum tp_pinned_state reason)
+{
+	struct tp_touch *t;
+
+	tp_for_each_touch(tp, t) {
+		tp_unpin_finger(tp, t, reason);
+	}
+}
+
+static inline void
+tp_pin_finger(struct tp_dispatch *tp, struct tp_touch *t,
+	      enum tp_pinned_state reason)
+{
+	if (t->pinned.state == PINNED_STATE_NONE)
+		t->pinned.center = t->point;
+	t->pinned.state |= reason;
+}
+
+static inline void
+tp_pin_fingers(struct tp_dispatch *tp, enum tp_pinned_state reason,
+	       bool only_taps)
+{
+	struct tp_touch *t;
+
+	tp_for_each_touch(tp, t) {
+		if (only_taps && t->tap.state != TAP_TOUCH_STATE_TOUCH)
+			continue;
+		tp_pin_finger(tp, t, reason);
+	}
+}
+
 struct device_coords
 tp_get_delta(struct tp_touch *t);
 
@@ -628,7 +672,7 @@ bool
 tp_touch_active_for_gesture(const struct tp_dispatch *tp,
 			    const struct tp_touch *t);
 
-int
+void
 tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time);
 
 void
@@ -660,7 +704,7 @@ void
 tp_release_all_buttons(struct tp_dispatch *tp,
 		       uint64_t time);
 
-int
+void
 tp_post_button_events(struct tp_dispatch *tp, uint64_t time);
 
 void
