@@ -80,6 +80,42 @@ simply tap again (f).
 If two fingers are supported by the hardware, a second finger can be used to
 drag while the first is held in-place.
 
+.. _hold_tap:
+
+------------------------------------------------------------------------------
+Hold-and-tap
+------------------------------------------------------------------------------
+
+libinput supports tapping with a finger one set of fingers while another set
+of fingers is already in contact. This may speed up interactions where many
+taps occur in the middle of pointer motion or scrolling, because it is no longer
+necessary to lift the fingers responsible for motion and put them back down
+after the tap and a :ref:`tapndrag` timeout (if enabled).
+
+The tapping fingers can start tap-and-drag, as long as all holding fingers
+are released alongside the tapping ones. In addition, the holding fingers are
+allowed to be performing the latter half of tap-and-drag. In that case a tap
+with the same number of fingers as the one which was used to start the drag
+is ignored.
+
+Hold-and-tap is optional and disabled by default, because it preempts some
+protection against accidental short touches with a palm or thumb. It can be
+enabled or disabled with **libinput_device_config_tap_set_hold_tap_enabled()**.
+Example uses of hold-and-tap include:
+
+- move the cursor to a clickable target with a one-finger motion, add a finger,
+  release both (performs a click on the target)
+
+- chaining the above: move to a target, tap with a second finger, move the first
+  finger to the next target, tap with a second finger again, etc. (performs a
+  click on each target)
+
+- tap with one finger, quickly put one finger down to start a drag, move it,
+  tap with two additional fingers (performs cursor movement with the left
+  mouse button held down, followed by a click with another button while the left
+  one is still down; in many environments this cancels a drag-and-drop and
+  undoes its effects).
+
 .. _tap_constraints:
 
 ------------------------------------------------------------------------------
