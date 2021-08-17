@@ -3751,7 +3751,7 @@ tp_init(struct tp_dispatch *tp,
 	tp_init_palmdetect(tp, device);
 	tp_init_sendevents(tp, device);
 	tp_init_scroll(tp, device);
-	tp_init_gesture(tp);
+	tp_init_gesture(tp, device);
 	tp_init_thumb(tp);
 
 	/* Lenovo X1 Gen6 buffers the events in a weird way, making jump

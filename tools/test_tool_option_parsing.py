@@ -211,6 +211,7 @@ options = {
         "left-handed",
         "dwt",
         "dwtp",
+        "three-finger-drag",
     ],
     # options with distinct values
     "enums": {

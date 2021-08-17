@@ -295,6 +295,19 @@ depending on whether tap-to-click is enabled and the hold gesture event may
 not match touch sequences that a user would expect to be a tap-to-click
 interaction.
 
+Three-finger Drag
+..............................
+
+If enabled, three-finger drag replaces the three-finger gestures with the 
+ability to simulate a click and drag by placing three fingers on the 
+touchpad and dragging them.
+
+The mechanism is integrated into the gestures state machine and behaves very
+similarly to the three-finger swipe, but instead of sending a swipe event
+it starts the gesture by simulating a click, followed by the drag of the 
+pointer, and finally, it simulates a release click when the action is complete
+or canceled.
+
 .. _gestures_touchscreens:
 
 ------------------------------------------------------------------------------

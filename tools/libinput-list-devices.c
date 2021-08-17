@@ -97,6 +97,18 @@ nat_scroll_default(struct libinput_device *device)
 }
 
 static const char *
+three_finger_drag_default(struct libinput_device *device)
+{
+	if (!libinput_device_config_has_three_finger_drag(device))
+		return "n/a";
+
+	if (libinput_device_config_get_default_three_finger_drag_enabled(device))
+		return "enabled";
+
+	return "disabled";
+}
+
+static const char *
 middle_emulation_default(struct libinput_device *device)
 {
 	if (!libinput_device_config_middle_emulation_is_available(device))
@@ -342,6 +354,7 @@ print_device_notify(struct libinput_event *ev)
 	printf("Tap drag lock:    %s\n", draglock_default(dev));
 	printf("Left-handed:      %s\n", left_handed_default(dev));
 	printf("Nat.scrolling:    %s\n", nat_scroll_default(dev));
+	printf("3Finger Drag:     %s\n", three_finger_drag_default(dev));
 	printf("Middle emulation: %s\n", middle_emulation_default(dev));
 	str = calibration_default(dev);
 	printf("Calibration:      %s\n", str);

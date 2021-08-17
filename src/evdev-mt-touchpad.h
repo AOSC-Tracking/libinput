@@ -163,6 +163,7 @@ enum tp_gesture_state {
 	GESTURE_STATE_SCROLL,
 	GESTURE_STATE_PINCH,
 	GESTURE_STATE_SWIPE,
+	GESTURE_STATE_DRAG,
 };
 
 enum tp_thumb_state {
@@ -699,7 +700,7 @@ uint32_t
 tp_touch_get_edge(const struct tp_dispatch *tp, const struct tp_touch *t);
 
 void
-tp_init_gesture(struct tp_dispatch *tp);
+tp_init_gesture(struct tp_dispatch *tp, struct evdev_device *device);
 
 void
 tp_remove_gesture(struct tp_dispatch *tp);

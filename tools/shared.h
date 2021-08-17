@@ -59,6 +59,8 @@ enum configuration_options {
 	OPT_PROFILE,
 	OPT_DISABLE_SENDEVENTS,
 	OPT_APPLY_TO,
+	OPT_THREE_FINGER_DRAG_ENABLE,
+	OPT_THREE_FINGER_DRAG_DISABLE,
 };
 
 #define CONFIGURATION_OPTIONS \
@@ -87,7 +89,9 @@ enum configuration_options {
 	{ "set-profile",               required_argument, 0, OPT_PROFILE }, \
 	{ "set-tap-map",               required_argument, 0, OPT_TAP_MAP }, \
 	{ "set-speed",                 required_argument, 0, OPT_SPEED },\
-	{ "apply-to",                  required_argument, 0, OPT_APPLY_TO }
+	{ "apply-to",                  required_argument, 0, OPT_APPLY_TO }, \
+	{ "enable-three-finger-drag",no_argument,       0, OPT_THREE_FINGER_DRAG_ENABLE }, \
+	{ "disable-three-finger-drag",no_argument,      0, OPT_THREE_FINGER_DRAG_DISABLE }
 
 enum tools_backend {
 	BACKEND_NONE,
@@ -102,6 +106,7 @@ struct tools_options {
 	int drag;
 	int drag_lock;
 	int natural_scroll;
+	int three_finger_drag;
 	int left_handed;
 	int middlebutton;
 	enum libinput_config_click_method click_method;
