@@ -53,18 +53,18 @@
 #define DEFAULT_BUTTON_SCROLL_TIMEOUT ms2us(200)
 
 enum evdev_device_udev_tags {
-        EVDEV_UDEV_TAG_INPUT		= bit(0),
-        EVDEV_UDEV_TAG_KEYBOARD		= bit(1),
-        EVDEV_UDEV_TAG_MOUSE		= bit(2),
-        EVDEV_UDEV_TAG_TOUCHPAD		= bit(3),
-        EVDEV_UDEV_TAG_TOUCHSCREEN	= bit(4),
-        EVDEV_UDEV_TAG_TABLET		= bit(5),
-        EVDEV_UDEV_TAG_JOYSTICK		= bit(6),
-        EVDEV_UDEV_TAG_ACCELEROMETER	= bit(7),
-        EVDEV_UDEV_TAG_TABLET_PAD	= bit(8),
-        EVDEV_UDEV_TAG_POINTINGSTICK	= bit(9),
-        EVDEV_UDEV_TAG_TRACKBALL	= bit(10),
-        EVDEV_UDEV_TAG_SWITCH		= bit(11),
+	EVDEV_UDEV_TAG_INPUT		= bit(0),
+	EVDEV_UDEV_TAG_KEYBOARD		= bit(1),
+	EVDEV_UDEV_TAG_MOUSE		= bit(2),
+	EVDEV_UDEV_TAG_TOUCHPAD		= bit(3),
+	EVDEV_UDEV_TAG_TOUCHSCREEN	= bit(4),
+	EVDEV_UDEV_TAG_TABLET		= bit(5),
+	EVDEV_UDEV_TAG_JOYSTICK		= bit(6),
+	EVDEV_UDEV_TAG_ACCELEROMETER	= bit(7),
+	EVDEV_UDEV_TAG_TABLET_PAD	= bit(8),
+	EVDEV_UDEV_TAG_POINTINGSTICK	= bit(9),
+	EVDEV_UDEV_TAG_TRACKBALL	= bit(10),
+	EVDEV_UDEV_TAG_SWITCH		= bit(11),
 };
 
 struct evdev_udev_tag_match {
@@ -87,6 +87,17 @@ static const struct evdev_udev_tag_match evdev_udev_tag_matches[] = {
 	{"ID_INPUT_TRACKBALL",		EVDEV_UDEV_TAG_TRACKBALL},
 	{"ID_INPUT_SWITCH",		EVDEV_UDEV_TAG_SWITCH},
 };
+
+static inline bool
+signed_scroll(struct evdev_device *device)
+{
+	/* Abut the device signed scroll request bit next to the test bit.
+	 * This is done to avoid making changes to other files in the initial
+	 * signed scroll implementation and to not interfere with any other
+	 * model flags.
+	 */
+	return device->model_flags & (EVDEV_MODEL_TEST_DEVICE >> 1);
+}
 
 static inline bool
 parse_udev_flag(struct evdev_device *device,
@@ -230,9 +241,13 @@ evdev_button_scroll_button(struct evdev_device *device,
 	}
 
 	if (is_press) {
-		if (device->scroll.button < BTN_MOUSE + 5) {
-			/* For mouse buttons 1-5 (0x110 to 0x114) we apply a timeout before scrolling
-			 * since the button could also be used for regular clicking. */
+		if (!signed_scroll(device) && device->scroll.button < BTN_MOUSE + 5) {
+			/* For mouse buttons 1-5 (0x110 to 0x114) apply a timeout before
+			 * scrolling since the button could also be used for clicking.
+			 * If the device has signed scrolling enabled  don't do this.
+			 * Intermixing clicking with modal scrolling is basically a bad idea,
+			 * assume any signed scrolling device won't want this.
+			 */
 			enum timer_flags flags = TIMER_FLAG_NONE;
 
 			device->scroll.button_scroll_state = BUTTONSCROLL_BUTTON_DOWN;
@@ -254,11 +269,12 @@ evdev_button_scroll_button(struct evdev_device *device,
 						time + DEFAULT_BUTTON_SCROLL_TIMEOUT,
 						flags);
 		} else {
-			/* For extra mouse buttons numbered 6 or more (0x115+) we assume it is
+			/* For extra mouse buttons numbered 6+ (0x115+) we assume it is
 			 * dedicated exclusively to scrolling, so we don't apply the timeout
 			 * in order to provide immediate scrolling responsiveness. */
 			device->scroll.button_scroll_state = BUTTONSCROLL_READY;
 		}
+
 		device->scroll.button_down_time = time;
 		evdev_log_debug(device, "btnscroll: down\n");
 	} else {
@@ -272,16 +288,21 @@ evdev_button_scroll_button(struct evdev_device *device,
 		case BUTTONSCROLL_READY:
 			evdev_log_debug(device, "btnscroll: cancel\n");
 
-			/* If the button is released quickly enough or
-			 * without scroll events, emit the
-			 * button press/release events. */
-			evdev_pointer_post_button(device,
+			/* If the button is released quickly enough or without scroll events,
+			 * emit the button press/release events. 
+			 * Don't do this for signed scrolling enabled devices as presumably
+			 * anyone wanting this feature won't want to overload scrolling 
+			 * modal indication with an orthogonal operation like browsing.
+			 */
+			if (!signed_scroll(device) && device->scroll.button < BTN_MOUSE + 5) {
+				evdev_pointer_post_button(device,
 					device->scroll.button_down_time,
 					device->scroll.button,
 					LIBINPUT_BUTTON_STATE_PRESSED);
-			evdev_pointer_post_button(device, time,
+				evdev_pointer_post_button(device, time,
 					device->scroll.button,
 					LIBINPUT_BUTTON_STATE_RELEASED);
+			}
 			break;
 		case BUTTONSCROLL_SCROLLING:
 			evdev_log_debug(device, "btnscroll: up\n");
@@ -303,6 +324,19 @@ evdev_pointer_notify_button(struct evdev_device *device,
 	if (device->scroll.method == LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN &&
 	    button == device->scroll.button) {
 		evdev_button_scroll_button(device, time, state);
+		return;
+	}
+
+	if (signed_scroll(device) &&
+		device->scroll.method == LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN &&
+		button == BTN_EXTRA && device->scroll.button == BTN_SIDE) {
+		/* If signed scrolling is enabled on the device,
+		 * swallow BTN_EXTRA if scrolling on BTN_SIDE.
+		 * Temporary solution for Logitech mouse equipped with two position
+		 * capacitive touch sensor at mouse wheel location.
+		 * This mouse can produce unwanted BTN_EXTRA events intermixed with
+		 * desired BTN_SIDE events.
+		 */
 		return;
 	}
 
@@ -1050,10 +1084,10 @@ evdev_process_event(struct evdev_device *device, struct input_event *e)
 	struct evdev_dispatch *dispatch = device->dispatch;
 	uint64_t time = input_event_time(e);
 
-#if 0
+#if 0	
 	evdev_print_event(device, e);
 #endif
-
+	
 	libinput_timer_flush(evdev_libinput_context(device), time);
 
 	dispatch->interface->process(dispatch, device, e, time);
@@ -1548,6 +1582,12 @@ evdev_read_model_flags(struct evdev_device *device)
 		model_flags |= EVDEV_MODEL_TEST_DEVICE;
 	}
 
+	if (parse_udev_flag(device, device->udev_device,
+			    "LIBINPUT_SIGNED_SCROLL")) {
+		evdev_log_debug(device, "requests signed scrolling\n");
+		model_flags |= EVDEV_MODEL_TEST_DEVICE >> 1;
+	}
+		
 	return model_flags;
 }
 
@@ -2706,6 +2746,28 @@ evdev_start_scrolling(struct evdev_device *device,
 	device->scroll.direction |= bit(axis);
 }
 
+/* Nonlinear functions for signed scrolling dynamic range expansion.
+ * The basic idea is to expand the normal mouse range +-2^7 to +-2^14
+ * This allows both slow/controlled scrolling and very fast scrolling,
+ * fast enough to preclude the need for scrollbar use.
+ *
+ * The current scheme has only been tested on legacy, dpi < 1000, mice.
+ * It may need to be revisited for mice that report fast enough so that
+ * the number of mickeys in each report never reaches the expected
+ * +-2^7 range.
+ */
+static double sign(double x) { return x > 0 ? 1.0 : (x < 0 ? -1.0 : 0.0); }
+static double ballistics_gain(double x, double dpi) {
+	/* Adjust nonlinear knee for legacy mice (dpi < 1000), otherwise
+	 * acceleration becomes too touchy.
+	 */	
+	double knee = dpi >= DEFAULT_MOUSE_DPI ? 1.0 : DEFAULT_MOUSE_DPI/dpi;
+	knee = knee*knee*knee*128.0;
+	
+	x = fabs(x);
+	return x + floor(x*x*x/(knee));
+}
+
 void
 evdev_post_scroll(struct evdev_device *device,
 		  uint64_t time,
@@ -2715,42 +2777,94 @@ evdev_post_scroll(struct evdev_device *device,
 	const struct normalized_coords *trigger;
 	struct normalized_coords event;
 
-	if (!evdev_is_scrolling(device,
-				LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))
-		device->scroll.buildup.y += delta->y;
-	if (!evdev_is_scrolling(device,
-				LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
-		device->scroll.buildup.x += delta->x;
-
+	/* For signed scrolling, only accumulate axis selection motion
+	 * until one axis is active. One axis active at a time.
+	 */
+	if (signed_scroll(device)) {
+		if (!evdev_is_scrolling(device,
+		    LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL) &&
+		    !evdev_is_scrolling(device,
+		    LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL)) {
+			device->scroll.buildup.y += delta->y;
+			/* Defer x axis selection to make y axis selection more robust.
+			 * In the signed scrolling use model, the x axis is used 
+			 * infrequently enough so that incurring a timing delay isn't
+			 * objectionable and it further reduces spurious x axis
+			 * activation when y is intended.
+			 */
+			if (time > device->scroll.button_down_time + ms2us(250))
+				device->scroll.buildup.x += delta->x;
+		}
+	} else {
+		if (!evdev_is_scrolling(device,
+		    LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))
+			device->scroll.buildup.y += delta->y;
+		if (!evdev_is_scrolling(device,
+		    LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
+			device->scroll.buildup.x += delta->x;
+	}
+	
 	trigger = &device->scroll.buildup;
 
 	/* If we're not scrolling yet, use a distance trigger: moving
 	   past a certain distance starts scrolling */
 	if (!evdev_is_scrolling(device,
-				LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL) &&
+	    LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL) &&
 	    !evdev_is_scrolling(device,
-				LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
-		if (fabs(trigger->y) >= device->scroll.threshold)
-			evdev_start_scrolling(device,
-					      LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
-		if (fabs(trigger->x) >= device->scroll.threshold)
-			evdev_start_scrolling(device,
-					      LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+	    LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
+		if (signed_scroll(device)) {
+			/* Only one axis at a time with signed scrolling.
+			 * Prefer y axis, predominant signed scroll use model, over x axis.
+			 * Use a 1/100" mode trigger threshold.
+			 */
+			double t = device->dpi/100.0; 
+			if (fabs(trigger->y) - 0.25*fabs(trigger->x) > t)
+				evdev_start_scrolling(device,
+					LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+			else if (0.25*fabs(trigger->x) - fabs(trigger->y) > t)
+				evdev_start_scrolling(device,
+					LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+		} else {
+			if (fabs(trigger->y) >= device->scroll.threshold)
+				evdev_start_scrolling(device,
+					LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+			if (fabs(trigger->x) >= device->scroll.threshold)
+				evdev_start_scrolling(device,
+					LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+		}
 	/* We're already scrolling in one direction. Require some
-	   trigger speed to start scrolling in the other direction */
-	} else if (!evdev_is_scrolling(device,
-			       LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
-		if (fabs(delta->y) >= device->scroll.direction_lock_threshold)
-			evdev_start_scrolling(device,
-				      LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
-	} else if (!evdev_is_scrolling(device,
-				LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL)) {
-		if (fabs(delta->x) >= device->scroll.direction_lock_threshold)
-			evdev_start_scrolling(device,
-				      LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+	 * trigger speed to start scrolling in the other direction.
+	 * For the signed scrolling device, disallow dual axis scrolling
+	 * on a single button.
+	 */
+	} else if (!signed_scroll(device)) { 
+		if (!evdev_is_scrolling(device,
+		    LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
+			if (fabs(delta->y) >= device->scroll.direction_lock_threshold)
+				evdev_start_scrolling(device,
+					LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+		} else if (!evdev_is_scrolling(device,
+ 			   LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL)) {
+			if (fabs(delta->x) >= device->scroll.direction_lock_threshold)
+				evdev_start_scrolling(device,
+					LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+		}
 	}
 
 	event = *delta;
+	if (signed_scroll(device)) {
+		/* signed/freeform/scribble scrolling accumulator.
+		 * Only one active axis per model invocation.
+		 * Aaccumulate sign adjusted distance for both axes.
+		 * Approximate euclidian distance with manhattan distance.
+		 * Apply velocity ballistics to distance accumulated.
+		 * Apply sign established at invocation.
+		 */
+		event.x = ballistics_gain(delta->x, device->dpi)*sign(trigger->x) +
+			  ballistics_gain(delta->y, device->dpi)*sign(trigger->x);
+		event.y = ballistics_gain(delta->x, device->dpi)*sign(trigger->y) +
+			  ballistics_gain(delta->y, device->dpi)*sign(trigger->y);
+	}
 
 	/* We use the trigger to enable, but the delta from this event for
 	 * the actual scroll movement. Otherwise we get a jump once
