@@ -676,6 +676,9 @@ void
 tp_init_tap(struct tp_dispatch *tp);
 
 void
+tp_init_tfd(struct tp_dispatch *tp);
+
+void
 tp_remove_tap(struct tp_dispatch *tp);
 
 void
@@ -724,6 +727,9 @@ tp_tap_resume(struct tp_dispatch *tp, uint64_t time);
 
 bool
 tp_tap_dragging(const struct tp_dispatch *tp);
+
+bool
+tp_tfd_dragging(const struct tp_dispatch *tp);
 
 bool
 tp_tap_dragging_or_double_tapping(const struct tp_dispatch *tp);

@@ -148,7 +148,7 @@ tp_tap_notify(struct tp_dispatch *tp,
 				    time,
 				    button,
 				    state);
-					
+
 	if (state != LIBINPUT_BUTTON_STATE_PRESSED)
 		tp_tfd_handle_tap(tp, time);
 }
