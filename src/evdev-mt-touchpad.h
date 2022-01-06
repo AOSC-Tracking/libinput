@@ -136,15 +136,20 @@ enum tp_tap_state {
 
 
 enum tp_tfd_state {
+	/* [debounce] = brief states anticipating a further increase/decrease in finger
+	count, preventing unintended drops on account of motion events */
+
 	/* waiting for 3 fingers */
 	TFD_STATE_IDLE,
-	/* 3 fingers down, possible 4+ f gesture */
+	/* 3 fingers touching, possible 4+ f gesture */
 	TFD_STATE_POSSIBLE_DRAG,
-	/* 3 fingers down and button press has been output */
+	/* 3 fingers touching and button press has been output */
 	TFD_STATE_DRAG,
-	/* drag-lock; waiting for drag continuation */
+	/* [debounce] drag-lock; 1 finger touching, possibly going to 0 fingers */
+	TFD_STATE_POSSIBLE_ZERO_FINGERS,
+	/* drag-lock; waiting for 3 finger drag continuation */
 	TFD_STATE_AWAIT_RESUME,
-	/* disambiguate between drag continuation and a possible 4+ gesture */
+	/* [debounce] disambiguate between drag continuation and a possible 4+ gesture */
 	TFD_STATE_POSSIBLE_RESUME,
 };
 

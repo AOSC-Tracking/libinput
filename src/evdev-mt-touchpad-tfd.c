@@ -44,6 +44,7 @@ tfd_state_to_str(enum tp_tfd_state state)
 	CASE_RETURN_STRING(TFD_STATE_IDLE);
 	CASE_RETURN_STRING(TFD_STATE_POSSIBLE_DRAG);
 	CASE_RETURN_STRING(TFD_STATE_DRAG);
+	CASE_RETURN_STRING(TFD_STATE_POSSIBLE_ZERO_FINGERS);
 	CASE_RETURN_STRING(TFD_STATE_AWAIT_RESUME);
 	CASE_RETURN_STRING(TFD_STATE_POSSIBLE_RESUME);
 	}
@@ -275,6 +276,8 @@ tp_tfd_possible_drag_handle_event(struct tp_dispatch *tp,
 		}
 		break;
 	case TFD_EVENT_MOTION:
+	/* this event must ensure it fires upon cursor movement -- alternatively, if
+	impossible, TODO: cursor should be pinned in this state to ensure this */
 		switch (nfingers_down) {
 		default: 
 			log_tfd_bug(tp, event, nfingers_down);
@@ -303,6 +306,12 @@ tp_tfd_possible_drag_handle_event(struct tp_dispatch *tp,
 	}
 }
 
+
+		/* TODO: Future improvement: When one finger moves considerably 
+		faster than the others, don't average their deltas for cursor 
+		position updates -- use the fastest finger only */
+
+
 static void
 tp_tfd_drag_handle_event(struct tp_dispatch *tp,
 			      struct tp_touch *t,
@@ -315,10 +324,7 @@ tp_tfd_drag_handle_event(struct tp_dispatch *tp,
 	case TFD_EVENT_TOUCH_COUNT_DECREASE:
 		switch (nfingers_down) {
 		case 0: 
-		case 1:
 			tp_tfd_pin_fingers(tp);
-			/* removing all, or all but one, fingers gives you ~0.7 seconds to 
-			place three fingers back on the touchpad before the drag ends */
 			tp_tfd_set_await_resume_timer(tp, time);
 			tp->tfd.state = TFD_STATE_AWAIT_RESUME;
 
@@ -328,14 +334,17 @@ tp_tfd_drag_handle_event(struct tp_dispatch *tp,
 			// tp->tfd.state = TFD_STATE_POSSIBLE_RESUME;
 
 			break;
+		case 1:
+			tp_tfd_pin_fingers(tp);
+			tp_tfd_set_await_resume_timer(tp, time);
+			tp_tfd_set_await_more_fingers_timer(tp, time);
+			tp->tfd.state = TFD_STATE_POSSIBLE_ZERO_FINGERS;
+			break;
 		default: 
 			break;
 		}
 		break;
 	case TFD_EVENT_MOTION:
-		/* TODO: Future improvement: When one finger moves considerably 
-		faster than the others, don't average their deltas for cursor 
-		position updates -- use the fastest finger only */
 		break;
 	case TFD_EVENT_RESUME_TIMEOUT:
 	case TFD_EVENT_TIMEOUT:
@@ -347,6 +356,73 @@ tp_tfd_drag_handle_event(struct tp_dispatch *tp,
 		tp_tfd_unpin_fingers(tp);
 		tp->tfd.state = TFD_STATE_IDLE;
 		tp_tfd_clear_resume_timer(tp);
+		tp_tfd_notify(tp, time, 1, LIBINPUT_BUTTON_STATE_RELEASED);
+		break;
+	}
+}
+
+
+/* Waiting for zero fingers. Drag has decreased to 1 finger, but it might be 
+a transitory phase towards 0 fingers. Allow a small amount of time for that
+before allowing one finger to break out of the drag in the AWAIT state. Makes it
+harder to end very fast, brief drags. */
+static void
+tp_tfd_possible_zero_fingers_handle_event(struct tp_dispatch *tp,
+				  struct tp_touch *t,
+				  enum tfd_event event, uint64_t time,
+				   int nfingers_down)
+{
+	switch (event) {
+	case TFD_EVENT_TOUCH_COUNT_DECREASE:
+		switch (nfingers_down) {
+		case 0: 
+			tp_tfd_clear_timer(tp);
+			tp->tfd.state = TFD_STATE_AWAIT_RESUME;
+			break;
+		default:
+			log_tfd_bug(tp, event, nfingers_down);
+			break;
+		}
+		break;
+	case TFD_EVENT_MOTION:
+		break;
+	case TFD_EVENT_RESUME_TIMEOUT: 
+		/* this shouldn't have time to happen */
+		log_tfd_bug(tp, event, nfingers_down);
+		tp->tfd.state = TFD_STATE_IDLE;
+		tp_tfd_clear_timer(tp);
+		tp_tfd_unpin_fingers(tp);
+		break;
+	case TFD_EVENT_TOUCH_COUNT_INCREASE:
+		/* an increase forces immediate evaluation as if the timer had fired */
+		tp_tfd_clear_timer(tp);
+		/* fallthrough */
+	case TFD_EVENT_TIMEOUT:
+		/* time to (most probably) transition to the AWAIT state with 0 or 1 fingers */
+		switch (nfingers_down) {
+		case 0:
+		case 1:
+		case 2:
+			tp->tfd.state = TFD_STATE_AWAIT_RESUME;
+			break;
+		case 3:
+			tp_tfd_set_await_more_fingers_timer(tp, time);
+			tp->tfd.state = TFD_STATE_POSSIBLE_RESUME;
+			break;
+		default:
+			tp_tfd_unpin_fingers(tp);
+			tp->tfd.state = TFD_STATE_IDLE;
+			tp_tfd_clear_resume_timer(tp);
+			tp_tfd_notify(tp, time, 1, LIBINPUT_BUTTON_STATE_RELEASED);
+			break;
+		}
+		break;
+	case TFD_EVENT_TAP:
+	case TFD_EVENT_BUTTON:
+		tp_tfd_unpin_fingers(tp);
+		tp->tfd.state = TFD_STATE_IDLE;
+		tp_tfd_clear_resume_timer(tp);
+		tp_tfd_clear_timer(tp);
 		tp_tfd_notify(tp, time, 1, LIBINPUT_BUTTON_STATE_RELEASED);
 		break;
 	}
@@ -621,6 +697,10 @@ tp_tfd_handle_event(struct tp_dispatch *tp,
 		tp_tfd_drag_handle_event(tp, t, event, time, nfingers_down);
 		break;
 
+	case TFD_STATE_POSSIBLE_ZERO_FINGERS:
+		tp_tfd_possible_zero_fingers_handle_event(tp, t, event, time, nfingers_down);
+		break;
+
 	case TFD_STATE_AWAIT_RESUME:
 		tp_tfd_await_resume_handle_event(tp, t, event, time, nfingers_down);
 		break;
@@ -816,6 +896,7 @@ void
 tp_tfd_handle_tap(struct tp_dispatch *tp, uint64_t time)
 {
 	switch (tp->tfd.state) {
+		case TFD_STATE_POSSIBLE_ZERO_FINGERS:
 		case TFD_STATE_AWAIT_RESUME:
 		case TFD_STATE_POSSIBLE_RESUME:
 			tp_tfd_handle_event(tp, NULL, TFD_EVENT_TAP, time, tp->tfd.finger_count);
