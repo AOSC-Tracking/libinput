@@ -141,8 +141,10 @@ enum tp_tfd_state {
 
 	/* waiting for 3 fingers */
 	TFD_STATE_IDLE,
-	/* 3 fingers touching, possible 4+ f gesture */
-	TFD_STATE_POSSIBLE_DRAG,
+	/* [debounce] disambiguate between starting a drag and a possible 4+ gesture */
+	TFD_STATE_POSSIBLE_BEGIN,
+	/* 3 fingers touching, waiting for motion or timeout */
+	TFD_STATE_AWAIT_DRAG,
 	/* 3 fingers touching and button press has been output */
 	TFD_STATE_DRAG,
 	/* [debounce] drag-lock; 1 finger touching, possibly going to 0 fingers */
