@@ -331,12 +331,12 @@ tp_tfd_interrupt_gestures(struct tp_dispatch *tp, struct tp_touch *t, uint64_t t
 	case GESTURE_STATE_NONE:
 	case GESTURE_STATE_POINTER_MOTION:
 		break; /* should be harmless enough? */
-	case GESTURE_STATE_HOLD:
-	case GESTURE_STATE_HOLD_AND_MOTION:
-		/* starting a drag should finish a hold gesture -- not 
-		cancel it (if there's any difference?) */
-		tp_gesture_stop(tp, time);
-		break;
+	// case GESTURE_STATE_HOLD:
+	// case GESTURE_STATE_HOLD_AND_MOTION:
+	// 	/* starting a drag should finish a hold gesture -- not 
+	// 	cancel it (if there's any difference?) */
+	// 	tp_gesture_stop(tp, time);
+	// 	break;
 	default:
 		tp_gesture_cancel(tp, time);
 		break;
