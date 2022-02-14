@@ -141,16 +141,22 @@ enum tp_tfd_state {
 
 	/* waiting for 3 fingers */
 	TFD_STATE_IDLE,
-	/* [debounce] disambiguate between starting a drag and a possible 4+ gesture */
-	TFD_STATE_POSSIBLE_BEGIN,
+	// not used -- TODO: remove after testing drag_and_debounce
+	// /* [debounce] disambiguate between starting a drag and a possible 4+ gesture */
+	// TFD_STATE_POSSIBLE_BEGIN,
 	/* 3 fingers touching, waiting for motion or timeout */
 	TFD_STATE_AWAIT_DRAG,
+	/* [debounce] same as drag state, but cancellable in case of possible 4+ 
+	gesture. Replacement state for POSSIBLE_BEGIN */
+	TFD_STATE_DRAG_AND_DEBOUNCE,
 	/* 3 fingers touching and button press has been output */
 	TFD_STATE_DRAG,
-	/* [debounce] drag-lock; 1 finger touching, possibly going to 0 fingers */
+	/* [debounce] drag-lock; 1 finger touching, possibly going to 0 fingers.
+	Prevents premature cancellation of AWAIT_RESUME by 1 finger motion events. */
 	TFD_STATE_POSSIBLE_ZERO_FINGERS,
 	/* drag-lock; waiting for 3 finger drag continuation */
 	TFD_STATE_AWAIT_RESUME,
+	/* TODO: possible to replace this state with DRAG_AND_DEBOUNCE as well? */
 	/* [debounce] disambiguate between drag continuation and a possible 4+ gesture */
 	TFD_STATE_POSSIBLE_RESUME,
 };
