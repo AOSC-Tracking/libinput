@@ -253,6 +253,14 @@ struct libinput_device_config_natural_scroll {
 	int (*get_default_enabled)(struct libinput_device *device);
 };
 
+struct libinput_device_config_three_finger_drag {
+	int (*has)(struct libinput_device *device);
+	enum libinput_config_status (*set_enabled)(
+		struct libinput_device *device, int enabled);
+	int (*get_enabled)(struct libinput_device *device);
+	int (*get_default_enabled)(struct libinput_device *device);
+};
+
 struct libinput_device_config_left_handed {
 	int (*has)(struct libinput_device *device);
 	enum libinput_config_status (*set)(struct libinput_device *device, int left_handed);
@@ -347,6 +355,7 @@ struct libinput_device_config {
 	struct libinput_device_config_dwtp *dwtp;
 	struct libinput_device_config_rotation *rotation;
 	struct libinput_device_config_gesture *gesture;
+	struct libinput_device_config_three_finger_drag *three_finger_drag;
 };
 
 struct libinput_device_group {

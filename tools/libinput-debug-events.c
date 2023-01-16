@@ -195,6 +195,8 @@ print_device_options(struct libinput_device *dev)
 	    printq(" left");
 	if (libinput_device_config_scroll_has_natural_scroll(dev))
 	    printq(" scroll-nat");
+	if (libinput_device_config_has_three_finger_drag(dev))
+		printq(" three-finger-drag");
 	if (libinput_device_config_calibration_has_matrix(dev))
 	    printq(" calib");
 
