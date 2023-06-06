@@ -2471,14 +2471,16 @@ litest_tool_event(struct litest_device *d, int value)
 }
 
 void
-litest_tablet_proximity_in(struct litest_device *d, int x, int y, struct axis_replacement *axes)
+litest_tablet_proximity_in(struct litest_device *d,
+			   double x, double y,
+			   struct axis_replacement *axes)
 {
 	struct input_event *ev;
 
 	/* If the test device overrides proximity_in and says it didn't
 	 * handle the event, let's continue normally */
 	if (d->interface->tablet_proximity_in &&
-	    d->interface->tablet_proximity_in(d, d->interface->tool_type, x, y, axes))
+	    d->interface->tablet_proximity_in(d, d->interface->tool_type, &x, &y, axes))
 		return;
 
 	ev = d->interface->tablet_proximity_in_events;
@@ -2528,9 +2530,17 @@ litest_tablet_proximity_out(struct litest_device *d)
 }
 
 void
-litest_tablet_motion(struct litest_device *d, int x, int y, struct axis_replacement *axes)
+litest_tablet_motion(struct litest_device *d,
+		     double x, double y,
+		     struct axis_replacement *axes)
 {
 	struct input_event *ev;
+
+	/* If the test device overrides proximity_out and says it didn't
+	 * handle the event, let's continue normally */
+	if (d->interface->tablet_motion &&
+	    d->interface->tablet_motion(d, &x, &y, axes))
+		return;
 
 	ev = d->interface->tablet_motion_events;
 	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
@@ -2543,13 +2553,13 @@ litest_tablet_motion(struct litest_device *d, int x, int y, struct axis_replacem
 
 void
 litest_tablet_tip_down(struct litest_device *d,
-		       int x, int y,
+		       double x, double y,
 		       struct axis_replacement *axes)
 {
 	/* If the test device overrides tip_down and says it didn't
 	 * handle the event, let's continue normally */
 	if (d->interface->tablet_tip_down &&
-	    d->interface->tablet_tip_down(d, x, y, axes))
+	    d->interface->tablet_tip_down(d, &x, &y, axes))
 		return;
 
 	litest_event(d, EV_KEY, BTN_TOUCH, 1);
@@ -2558,13 +2568,13 @@ litest_tablet_tip_down(struct litest_device *d,
 
 void
 litest_tablet_tip_up(struct litest_device *d,
-		     int x, int y,
+		     double x, double y,
 		     struct axis_replacement *axes)
 {
 	/* If the test device overrides tip_down and says it didn't
 	 * handle the event, let's continue normally */
 	if (d->interface->tablet_tip_up &&
-	    d->interface->tablet_tip_up(d, x, y, axes))
+	    d->interface->tablet_tip_up(d, &x, &y, axes))
 		return;
 
 	litest_event(d, EV_KEY, BTN_TOUCH, 0);

@@ -328,6 +328,7 @@ enum litest_device_type {
 	LITEST_MOUSE_FORMAT_STRING,
 	LITEST_LENOVO_SCROLLPOINT,
 	LITEST_SYNAPTICS_PHANTOMCLICKS,
+	LITEST_WACOM_CALIBRATED_TABLET,
 };
 
 #define LITEST_DEVICELESS	-2
@@ -366,6 +367,7 @@ enum litest_device_type {
 #define LITEST_DIRECT		bit(30)
 #define LITEST_TOTEM		bit(31)
 #define LITEST_FORCED_PROXOUT	bit(32)
+#define LITEST_PRECALIBRATED	bit(33)
 
 /* this is a semi-mt device, so we keep track of the touches that the tests
  * send and modify them so that the first touch is always slot 0 and sends
@@ -631,7 +633,7 @@ litest_tablet_set_tool_type(struct litest_device *d,
 
 void
 litest_tablet_proximity_in(struct litest_device *d,
-			   int x, int y,
+			   double x, double y,
 			   struct axis_replacement *axes);
 
 void
@@ -639,17 +641,17 @@ litest_tablet_proximity_out(struct litest_device *d);
 
 void
 litest_tablet_tip_down(struct litest_device *d,
-		       int x, int y,
+		       double x, double y,
 		       struct axis_replacement *axes);
 
 void
 litest_tablet_tip_up(struct litest_device *d,
-		     int x, int y,
+		     double x, double y,
 		     struct axis_replacement *axes);
 
 void
 litest_tablet_motion(struct litest_device *d,
-		     int x, int y,
+		     double x, double y,
 		     struct axis_replacement *axes);
 
 void
