@@ -1478,6 +1478,27 @@ tp_tap_config_get_default_map(struct libinput_device *device)
 	return LIBINPUT_CONFIG_TAP_MAP_LRM;
 }
 
+static uint32_t
+tp_tap_config_get_maps(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	uint32_t maps = 0;
+
+	switch (tp->num_slots) {
+	case 0:
+		break;
+	default:
+		maps |= (1 << LIBINPUT_CONFIG_TAP_MAP_LRM);
+		maps |= (1 << LIBINPUT_CONFIG_TAP_MAP_LMR);
+		maps |= (1 << LIBINPUT_CONFIG_TAP_MAP_LRN);
+		break;
+	}
+
+	return maps;
+}
+
 static enum libinput_config_status
 tp_tap_config_set_drag_enabled(struct libinput_device *device,
 			       enum libinput_config_drag_state enabled)
@@ -1560,6 +1581,7 @@ tp_init_tap(struct tp_dispatch *tp)
 	tp->tap.config.set_map = tp_tap_config_set_map;
 	tp->tap.config.get_map = tp_tap_config_get_map;
 	tp->tap.config.get_default_map = tp_tap_config_get_default_map;
+	tp->tap.config.get_maps = tp_tap_config_get_maps;
 	tp->tap.config.set_drag_enabled = tp_tap_config_set_drag_enabled;
 	tp->tap.config.get_drag_enabled = tp_tap_config_get_drag_enabled;
 	tp->tap.config.get_default_drag_enabled = tp_tap_config_get_default_drag_enabled;

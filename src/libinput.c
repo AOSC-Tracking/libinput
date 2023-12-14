@@ -3945,6 +3945,15 @@ libinput_device_config_tap_get_default_button_map(struct libinput_device *device
 	return device->config.tap->get_default_map(device);
 }
 
+LIBINPUT_EXPORT uint32_t
+libinput_device_config_tap_get_maps(struct libinput_device *device)
+{
+	if (libinput_device_config_tap_get_enabled(device) == LIBINPUT_CONFIG_TAP_DISABLED)
+		return 0;
+
+	return device->config.tap->get_maps(device);
+}
+
 LIBINPUT_EXPORT enum libinput_config_status
 libinput_device_config_tap_set_drag_enabled(struct libinput_device *device,
 					    enum libinput_config_drag_state enable)

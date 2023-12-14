@@ -4736,6 +4736,21 @@ libinput_device_config_tap_get_default_button_map(struct libinput_device *device
 /**
  * @ingroup config
  *
+ * Returns a bitmask of the configurable tap button maps available on
+ * this device.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of all tap button maps available on this device.
+ *
+ * @since 1.25
+ */
+uint32_t
+libinput_device_config_tap_get_maps(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
  * A config status to distinguish or set dragging on a device. Currently
  * implemented for tap-and-drag only, see
  * libinput_device_config_tap_set_drag_enabled()

@@ -333,3 +333,7 @@ LIBINPUT_1.23 {
 	libinput_device_config_accel_apply;
 	libinput_config_accel_set_points;
 } LIBINPUT_1.21;
+
+LIBINPUT_1.25 {
+	libinput_device_config_tap_get_maps;
+} LIBINPUT_1.23;
