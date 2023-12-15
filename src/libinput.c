@@ -3915,6 +3915,7 @@ libinput_device_config_tap_set_button_map(struct libinput_device *device,
 	switch (map) {
 	case LIBINPUT_CONFIG_TAP_MAP_LRM:
 	case LIBINPUT_CONFIG_TAP_MAP_LMR:
+	case LIBINPUT_CONFIG_TAP_MAP_LRN:
 		break;
 	default:
 		return LIBINPUT_CONFIG_STATUS_INVALID;

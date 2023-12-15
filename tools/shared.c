@@ -142,6 +142,8 @@ tools_parse_option(int option,
 			options->tap_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
 		} else if (streq(optarg, "lmr")) {
 			options->tap_map = LIBINPUT_CONFIG_TAP_MAP_LMR;
+		} else if (streq(optarg, "lrn")) {
+			options->tap_map = LIBINPUT_CONFIG_TAP_MAP_LRN;
 		} else {
 			return 1;
 		}

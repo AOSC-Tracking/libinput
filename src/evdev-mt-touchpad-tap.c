@@ -126,9 +126,10 @@ tp_tap_notify(struct tp_dispatch *tp,
 	      enum libinput_button_state state)
 {
 	int32_t button;
-	int32_t button_map[2][3] = {
+	int32_t button_map[3][3] = {
 		{ BTN_LEFT, BTN_RIGHT, BTN_MIDDLE },
 		{ BTN_LEFT, BTN_MIDDLE, BTN_RIGHT },
+		{ BTN_LEFT, BTN_RIGHT, 0 },
 	};
 
 	assert(tp->tap.map < ARRAY_LENGTH(button_map));
@@ -137,6 +138,8 @@ tp_tap_notify(struct tp_dispatch *tp,
 		return;
 
 	button = button_map[tp->tap.map][nfingers - 1];
+	if (button == 0)
+		return;
 
 	if (state == LIBINPUT_BUTTON_STATE_PRESSED)
 		tp->tap.buttons_pressed |= bit(nfingers);
