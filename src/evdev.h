@@ -568,6 +568,12 @@ evdev_pointer_notify_physical_button(struct evdev_device *device,
 				     enum libinput_button_state state);
 
 void
+evdev_notify_raw_tap(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_event_type type,
+		     int finger_count);
+
+void
 evdev_init_natural_scroll(struct evdev_device *device);
 
 void

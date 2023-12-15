@@ -208,6 +208,15 @@ evdev_pointer_post_button(struct evdev_device *device,
 
 }
 
+void
+evdev_notify_raw_tap(struct libinput_device *device,
+		     uint64_t time,
+		     enum libinput_event_type type,
+		     int finger_count)
+{
+	raw_tap_notify(device, time, type, finger_count);
+}
+
 static void
 evdev_button_scroll_timeout(uint64_t time, void *data)
 {

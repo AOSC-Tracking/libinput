@@ -134,6 +134,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_GESTURE_HOLD_END:
 		type = "GESTURE_HOLD_END";
 		break;
+	case LIBINPUT_EVENT_RAW_TAP:
+		type = "RAW_TAP";
+		break;
 	case LIBINPUT_EVENT_TABLET_TOOL_AXIS:
 		type = "TABLET_TOOL_AXIS";
 		break;
@@ -718,6 +721,16 @@ print_gesture_event_with_coords(struct libinput_event *ev)
 }
 
 static void
+print_raw_tap_event(struct libinput_event *ev)
+{
+	struct libinput_event_raw_tap *t = libinput_event_get_raw_tap_event(ev);
+	int finger_count = libinput_event_raw_tap_get_finger_count(t);
+
+	print_event_time(libinput_event_raw_tap_get_time(t));
+	printq("%d\n", finger_count);
+}
+
+static void
 print_tablet_pad_button_event(struct libinput_event *ev)
 {
 	struct libinput_event_tablet_pad *p = libinput_event_get_tablet_pad_event(ev);
@@ -918,6 +931,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_GESTURE_HOLD_END:
 			print_gesture_event_without_coords(ev);
+			break;
+		case LIBINPUT_EVENT_RAW_TAP:
+			print_raw_tap_event(ev);
 			break;
 		case LIBINPUT_EVENT_TABLET_TOOL_AXIS:
 			print_tablet_axis_event(ev);

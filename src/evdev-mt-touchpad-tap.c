@@ -65,6 +65,7 @@ tap_state_to_str(enum tp_tap_state state)
 	CASE_RETURN_STRING(TAP_STATE_1FGTAP_TAPPED);
 	CASE_RETURN_STRING(TAP_STATE_2FGTAP_TAPPED);
 	CASE_RETURN_STRING(TAP_STATE_3FGTAP_TAPPED);
+	CASE_RETURN_STRING(TAP_STATE_4FGTAP_TAPPED);
 	CASE_RETURN_STRING(TAP_STATE_TOUCH_2);
 	CASE_RETURN_STRING(TAP_STATE_TOUCH_2_HOLD);
 	CASE_RETURN_STRING(TAP_STATE_TOUCH_2_RELEASE);
@@ -72,21 +73,31 @@ tap_state_to_str(enum tp_tap_state state)
 	CASE_RETURN_STRING(TAP_STATE_TOUCH_3_HOLD);
 	CASE_RETURN_STRING(TAP_STATE_TOUCH_3_RELEASE);
 	CASE_RETURN_STRING(TAP_STATE_TOUCH_3_RELEASE_2);
+	CASE_RETURN_STRING(TAP_STATE_TOUCH_4);
+	CASE_RETURN_STRING(TAP_STATE_TOUCH_4_HOLD);
+	CASE_RETURN_STRING(TAP_STATE_TOUCH_4_RELEASE);
+	CASE_RETURN_STRING(TAP_STATE_TOUCH_4_RELEASE_2);
+	CASE_RETURN_STRING(TAP_STATE_TOUCH_4_RELEASE_3);
 	CASE_RETURN_STRING(TAP_STATE_1FGTAP_DRAGGING);
 	CASE_RETURN_STRING(TAP_STATE_2FGTAP_DRAGGING);
 	CASE_RETURN_STRING(TAP_STATE_3FGTAP_DRAGGING);
+	CASE_RETURN_STRING(TAP_STATE_4FGTAP_DRAGGING);
 	CASE_RETURN_STRING(TAP_STATE_1FGTAP_DRAGGING_WAIT);
 	CASE_RETURN_STRING(TAP_STATE_2FGTAP_DRAGGING_WAIT);
 	CASE_RETURN_STRING(TAP_STATE_3FGTAP_DRAGGING_WAIT);
+	CASE_RETURN_STRING(TAP_STATE_4FGTAP_DRAGGING_WAIT);
 	CASE_RETURN_STRING(TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP);
 	CASE_RETURN_STRING(TAP_STATE_2FGTAP_DRAGGING_OR_DOUBLETAP);
 	CASE_RETURN_STRING(TAP_STATE_3FGTAP_DRAGGING_OR_DOUBLETAP);
+	CASE_RETURN_STRING(TAP_STATE_4FGTAP_DRAGGING_OR_DOUBLETAP);
 	CASE_RETURN_STRING(TAP_STATE_1FGTAP_DRAGGING_OR_TAP);
 	CASE_RETURN_STRING(TAP_STATE_2FGTAP_DRAGGING_OR_TAP);
 	CASE_RETURN_STRING(TAP_STATE_3FGTAP_DRAGGING_OR_TAP);
+	CASE_RETURN_STRING(TAP_STATE_4FGTAP_DRAGGING_OR_TAP);
 	CASE_RETURN_STRING(TAP_STATE_1FGTAP_DRAGGING_2);
 	CASE_RETURN_STRING(TAP_STATE_2FGTAP_DRAGGING_2);
 	CASE_RETURN_STRING(TAP_STATE_3FGTAP_DRAGGING_2);
+	CASE_RETURN_STRING(TAP_STATE_4FGTAP_DRAGGING_2);
 	CASE_RETURN_STRING(TAP_STATE_DEAD);
 	}
 	return NULL;
@@ -134,6 +145,8 @@ tp_tap_notify(struct tp_dispatch *tp,
 
 	assert(tp->tap.map < ARRAY_LENGTH(button_map));
 
+	/* 4-fingers situation doesn't bond to any button,
+	 * so it's fine for 4-fingers to return. */
 	if (nfingers < 1 || nfingers > 3)
 		return;
 
@@ -150,6 +163,14 @@ tp_tap_notify(struct tp_dispatch *tp,
 				    time,
 				    button,
 				    state);
+}
+
+static void
+tp_raw_tap_notify(struct tp_dispatch *tp,
+		  uint64_t time,
+		  int nfingers)
+{
+	evdev_notify_raw_tap(&(tp->device)->base, time, LIBINPUT_EVENT_RAW_TAP, nfingers);
 }
 
 static void
@@ -326,12 +347,13 @@ tp_tap_tapped_handle_event(struct tp_dispatch *tp,
 		log_tap_bug(tp, t, event);
 		break;
 	case TAP_EVENT_TOUCH: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP,
 			TAP_STATE_2FGTAP_DRAGGING_OR_DOUBLETAP,
 			TAP_STATE_3FGTAP_DRAGGING_OR_DOUBLETAP,
+			TAP_STATE_4FGTAP_DRAGGING_OR_DOUBLETAP,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		tp->tap.saved_press_time = time;
 		tp_tap_set_timer(tp, time);
@@ -509,15 +531,15 @@ tp_tap_touch3_handle_event(struct tp_dispatch *tp,
 
 	switch (event) {
 	case TAP_EVENT_TOUCH:
-		tp->tap.state = TAP_STATE_DEAD;
-		tp_tap_clear_timer(tp);
+		tp->tap.state = TAP_STATE_TOUCH_4;
+		tp->tap.saved_press_time = time;
+		tp_tap_set_timer(tp, time);
 		break;
 	case TAP_EVENT_MOTION:
 		tp_tap_move_to_dead(tp, t);
 		break;
 	case TAP_EVENT_TIMEOUT:
 		tp->tap.state = TAP_STATE_TOUCH_3_HOLD;
-		tp_tap_clear_timer(tp);
 		tp_gesture_tap_timeout(tp, time);
 		break;
 	case TAP_EVENT_RELEASE:
@@ -546,7 +568,8 @@ tp_tap_touch3_hold_handle_event(struct tp_dispatch *tp,
 
 	switch (event) {
 	case TAP_EVENT_TOUCH:
-		tp->tap.state = TAP_STATE_DEAD;
+		tp->tap.state = TAP_STATE_TOUCH_4;
+		tp->tap.saved_press_time = time;
 		tp_tap_set_timer(tp, time);
 		break;
 	case TAP_EVENT_RELEASE:
@@ -658,6 +681,13 @@ tp_tap_touch3_release2_handle_event(struct tp_dispatch *tp,
 		tp_tap_set_timer(tp, time);
 		break;
 	case TAP_EVENT_RELEASE:
+		if (tp->tap.map == LIBINPUT_CONFIG_TAP_MAP_LRN) {
+			tp_raw_tap_notify(tp,
+				          tp->tap.saved_release_time,
+				          3);
+			tp->tap.state = TAP_STATE_IDLE;
+			break;
+		}
 		tp_tap_notify(tp,
 			      tp->tap.saved_press_time,
 			      3,
@@ -735,6 +765,322 @@ tp_tap_touch3_release2_handle_event(struct tp_dispatch *tp,
 }
 
 static void
+tp_tap_touch4_handle_event(struct tp_dispatch *tp,
+			   struct tp_touch *t,
+			   enum tap_event event, uint64_t time)
+{
+	switch (event) {
+	case TAP_EVENT_TOUCH:
+		tp->tap.state = TAP_STATE_DEAD;
+		tp_tap_clear_timer(tp);
+		break;
+	case TAP_EVENT_MOTION:
+		tp_tap_move_to_dead(tp, t);
+		break;
+	case TAP_EVENT_TIMEOUT:
+		tp->tap.state = TAP_STATE_TOUCH_4_HOLD;
+		tp_tap_clear_timer(tp);
+		tp_gesture_tap_timeout(tp, time);
+		break;
+	case TAP_EVENT_RELEASE:
+		tp->tap.state = TAP_STATE_TOUCH_4_RELEASE;
+		tp->tap.saved_release_time = time;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_BUTTON:
+		tp->tap.state = TAP_STATE_DEAD;
+		break;
+	case TAP_EVENT_THUMB:
+		break;
+	case TAP_EVENT_PALM:
+		tp->tap.state = TAP_STATE_TOUCH_3;
+		break;
+	case TAP_EVENT_PALM_UP:
+		break;
+	}
+}
+
+static void
+tp_tap_touch4_hold_handle_event(struct tp_dispatch *tp,
+				struct tp_touch *t,
+				enum tap_event event, uint64_t time)
+{
+	switch (event) {
+	case TAP_EVENT_TOUCH:
+		tp->tap.state = TAP_STATE_DEAD;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_RELEASE:
+		tp->tap.state = TAP_STATE_TOUCH_3_HOLD;
+		break;
+	case TAP_EVENT_MOTION:
+		tp_tap_move_to_dead(tp, t);
+		break;
+	case TAP_EVENT_TIMEOUT:
+		break;
+	case TAP_EVENT_BUTTON:
+		tp->tap.state = TAP_STATE_DEAD;
+		break;
+	case TAP_EVENT_THUMB:
+		break;
+	case TAP_EVENT_PALM:
+		tp->tap.state = TAP_STATE_TOUCH_3_HOLD;
+		break;
+	case TAP_EVENT_PALM_UP:
+		break;
+	}
+}
+
+static void
+tp_tap_touch4_release_handle_event(struct tp_dispatch *tp,
+				   struct tp_touch *t,
+				   enum tap_event event, uint64_t time)
+{
+	switch (event) {
+	case TAP_EVENT_TOUCH:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_TOUCH_4;
+		tp->tap.saved_press_time = time;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_RELEASE:
+		tp->tap.state = TAP_STATE_TOUCH_4_RELEASE_2;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_MOTION:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp_tap_move_to_dead(tp, t);
+		break;
+	case TAP_EVENT_TIMEOUT:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_TOUCH_3_HOLD;
+		break;
+	case TAP_EVENT_BUTTON:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_DEAD;
+		break;
+	case TAP_EVENT_THUMB:
+		break;
+	case TAP_EVENT_PALM:
+		tp->tap.state = TAP_STATE_TOUCH_3_RELEASE;
+		break;
+	case TAP_EVENT_PALM_UP:
+		break;
+	}
+}
+
+static void
+tp_tap_touch4_release2_handle_event(struct tp_dispatch *tp,
+				    struct tp_touch *t,
+				    enum tap_event event, uint64_t time)
+{
+	switch (event) {
+	case TAP_EVENT_TOUCH:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_TOUCH_3;
+		tp->tap.saved_press_time = time;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_RELEASE:
+		tp->tap.state = TAP_STATE_TOUCH_4_RELEASE_3;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_MOTION:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp_tap_move_to_dead(tp, t);
+		break;
+	case TAP_EVENT_TIMEOUT:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_TOUCH_2_HOLD;
+		break;
+	case TAP_EVENT_BUTTON:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_DEAD;
+		break;
+	case TAP_EVENT_THUMB:
+		break;
+	case TAP_EVENT_PALM:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      3,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		if (tp->tap.drag_enabled) {
+			/* Resetting the timer to the appropriate delay
+			 * for a three-finger tap would be ideal, but the
+			 * timestamp of the last real finger release is lost,
+			 * so the in-progress similar delay for release
+			 * of the finger which became a palm instead
+			 * will have to do */
+			tp->tap.state = TAP_STATE_3FGTAP_TAPPED;
+		} else {
+			tp_tap_notify(tp,
+				      tp->tap.saved_release_time,
+				      3,
+				      LIBINPUT_BUTTON_STATE_RELEASED);
+			tp->tap.state = TAP_STATE_IDLE;
+		}
+		break;
+	case TAP_EVENT_PALM_UP:
+		break;
+	}
+}
+
+static void
+tp_tap_touch4_release3_handle_event(struct tp_dispatch *tp,
+				    struct tp_touch *t,
+				    enum tap_event event, uint64_t time)
+{
+	switch (event) {
+	case TAP_EVENT_TOUCH:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_TOUCH_2;
+		tp->tap.saved_press_time = time;
+		tp_tap_set_timer(tp, time);
+		break;
+	case TAP_EVENT_RELEASE:
+		tp_raw_tap_notify(tp,
+				  tp->tap.saved_release_time,
+				  4);
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		if (tp->tap.drag_enabled) {
+			tp->tap.state = TAP_STATE_4FGTAP_TAPPED;
+			tp_tap_set_drag_timer(tp, time, 4);
+		} else {
+			tp_tap_notify(tp,
+				      tp->tap.saved_release_time,
+				      4,
+				      LIBINPUT_BUTTON_STATE_RELEASED);
+			tp->tap.state = TAP_STATE_IDLE;
+		}
+		break;
+	case TAP_EVENT_MOTION:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp_tap_move_to_dead(tp, t);
+		break;
+	case TAP_EVENT_TIMEOUT:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_HOLD;
+		break;
+	case TAP_EVENT_BUTTON:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		tp_tap_notify(tp,
+			      tp->tap.saved_release_time,
+			      4,
+			      LIBINPUT_BUTTON_STATE_RELEASED);
+		tp->tap.state = TAP_STATE_DEAD;
+		break;
+	case TAP_EVENT_THUMB:
+		break;
+	case TAP_EVENT_PALM:
+		tp_tap_notify(tp,
+			      tp->tap.saved_press_time,
+			      2,
+			      LIBINPUT_BUTTON_STATE_PRESSED);
+		if (tp->tap.drag_enabled) {
+			/* Resetting the timer to the appropriate delay
+			 * for a two-finger tap would be ideal, but the
+			 * timestamp of the last real finger release is lost,
+			 * so the in-progress similar delay for release
+			 * of the finger which became a palm instead
+			 * will have to do */
+			tp->tap.state = TAP_STATE_2FGTAP_TAPPED;
+		} else {
+			tp_tap_notify(tp,
+				      tp->tap.saved_release_time,
+				      2,
+				      LIBINPUT_BUTTON_STATE_RELEASED);
+			tp->tap.state = TAP_STATE_IDLE;
+		}
+		break;
+	case TAP_EVENT_PALM_UP:
+		break;
+	}
+}
+
+static void
 tp_tap_dragging_or_doubletap_handle_event(struct tp_dispatch *tp,
 					  struct tp_touch *t,
 					  enum tap_event event, uint64_t time,
@@ -766,12 +1112,13 @@ tp_tap_dragging_or_doubletap_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_EVENT_MOTION:
 	case TAP_EVENT_TIMEOUT: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING,
 			TAP_STATE_2FGTAP_DRAGGING,
 			TAP_STATE_3FGTAP_DRAGGING,
+			TAP_STATE_4FGTAP_DRAGGING,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
@@ -785,12 +1132,13 @@ tp_tap_dragging_or_doubletap_handle_event(struct tp_dispatch *tp,
 	case TAP_EVENT_THUMB:
 		break;
 	case TAP_EVENT_PALM: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_TAPPED,
 			TAP_STATE_2FGTAP_TAPPED,
 			TAP_STATE_3FGTAP_TAPPED,
+			TAP_STATE_4FGTAP_TAPPED,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
@@ -808,23 +1156,25 @@ tp_tap_dragging_handle_event(struct tp_dispatch *tp,
 
 	switch (event) {
 	case TAP_EVENT_TOUCH: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING_2,
 			TAP_STATE_2FGTAP_DRAGGING_2,
 			TAP_STATE_3FGTAP_DRAGGING_2,
+			TAP_STATE_4FGTAP_DRAGGING_2,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
 	case TAP_EVENT_RELEASE:
 		if (tp->tap.drag_lock_enabled) {
-			enum tp_tap_state dest[3] = {
+			enum tp_tap_state dest[4] = {
 				TAP_STATE_1FGTAP_DRAGGING_WAIT,
 				TAP_STATE_2FGTAP_DRAGGING_WAIT,
 				TAP_STATE_3FGTAP_DRAGGING_WAIT,
+				TAP_STATE_4FGTAP_DRAGGING_WAIT,
 			};
-			assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+			assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 			tp->tap.state = dest[nfingers_tapped - 1];
 			tp_tap_set_draglock_timer(tp, time);
 		} else {
@@ -869,12 +1219,13 @@ tp_tap_dragging_wait_handle_event(struct tp_dispatch *tp,
 
 	switch (event) {
 	case TAP_EVENT_TOUCH: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING_OR_TAP,
 			TAP_STATE_2FGTAP_DRAGGING_OR_TAP,
 			TAP_STATE_3FGTAP_DRAGGING_OR_TAP,
+			TAP_STATE_4FGTAP_DRAGGING_OR_TAP,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		tp_tap_set_timer(tp, time);
 		break;
@@ -932,12 +1283,13 @@ tp_tap_dragging_tap_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_EVENT_MOTION:
 	case TAP_EVENT_TIMEOUT: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING,
 			TAP_STATE_2FGTAP_DRAGGING,
 			TAP_STATE_3FGTAP_DRAGGING,
+			TAP_STATE_4FGTAP_DRAGGING,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
@@ -951,12 +1303,13 @@ tp_tap_dragging_tap_handle_event(struct tp_dispatch *tp,
 	case TAP_EVENT_THUMB:
 		break;
 	case TAP_EVENT_PALM: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING_WAIT,
 			TAP_STATE_2FGTAP_DRAGGING_WAIT,
 			TAP_STATE_3FGTAP_DRAGGING_WAIT,
+			TAP_STATE_4FGTAP_DRAGGING_WAIT,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
@@ -974,12 +1327,13 @@ tp_tap_dragging2_handle_event(struct tp_dispatch *tp,
 
 	switch (event) {
 	case TAP_EVENT_RELEASE: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING,
 			TAP_STATE_2FGTAP_DRAGGING,
 			TAP_STATE_3FGTAP_DRAGGING,
+			TAP_STATE_4FGTAP_DRAGGING,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
@@ -1004,12 +1358,13 @@ tp_tap_dragging2_handle_event(struct tp_dispatch *tp,
 	case TAP_EVENT_THUMB:
 		break;
 	case TAP_EVENT_PALM: {
-		enum tp_tap_state dest[3] = {
+		enum tp_tap_state dest[4] = {
 			TAP_STATE_1FGTAP_DRAGGING,
 			TAP_STATE_2FGTAP_DRAGGING,
 			TAP_STATE_3FGTAP_DRAGGING,
+			TAP_STATE_4FGTAP_DRAGGING,
 		};
-		assert(nfingers_tapped >= 1 && nfingers_tapped <= 3);
+		assert(nfingers_tapped >= 1 && nfingers_tapped <= 4);
 		tp->tap.state = dest[nfingers_tapped - 1];
 		break;
 	}
@@ -1074,6 +1429,9 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 	case TAP_STATE_3FGTAP_TAPPED:
 		tp_tap_tapped_handle_event(tp, t, event, time, 3);
 		break;
+	case TAP_STATE_4FGTAP_TAPPED:
+		tp_tap_tapped_handle_event(tp, t, event, time, 4);
+		break;
 	case TAP_STATE_TOUCH_2:
 		tp_tap_touch2_handle_event(tp, t, event, time);
 		break;
@@ -1095,6 +1453,21 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 	case TAP_STATE_TOUCH_3_RELEASE_2:
 		tp_tap_touch3_release2_handle_event(tp, t, event, time);
 		break;
+	case TAP_STATE_TOUCH_4:
+		tp_tap_touch4_handle_event(tp, t, event, time);
+		break;
+	case TAP_STATE_TOUCH_4_HOLD:
+		tp_tap_touch4_hold_handle_event(tp, t, event, time);
+		break;
+	case TAP_STATE_TOUCH_4_RELEASE:
+		tp_tap_touch4_release_handle_event(tp, t, event, time);
+		break;
+	case TAP_STATE_TOUCH_4_RELEASE_2:
+		tp_tap_touch4_release2_handle_event(tp, t, event, time);
+		break;
+	case TAP_STATE_TOUCH_4_RELEASE_3:
+		tp_tap_touch4_release3_handle_event(tp, t, event, time);
+		break;
 	case TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP:
 		tp_tap_dragging_or_doubletap_handle_event(tp, t, event, time,
 							  1);
@@ -1107,6 +1480,10 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 		tp_tap_dragging_or_doubletap_handle_event(tp, t, event, time,
 							  3);
 		break;
+	case TAP_STATE_4FGTAP_DRAGGING_OR_DOUBLETAP:
+		tp_tap_dragging_or_doubletap_handle_event(tp, t, event, time,
+							  4);
+		break;
 	case TAP_STATE_1FGTAP_DRAGGING:
 		tp_tap_dragging_handle_event(tp, t, event, time, 1);
 		break;
@@ -1115,6 +1492,9 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_STATE_3FGTAP_DRAGGING:
 		tp_tap_dragging_handle_event(tp, t, event, time, 3);
+		break;
+	case TAP_STATE_4FGTAP_DRAGGING:
+		tp_tap_dragging_handle_event(tp, t, event, time, 4);
 		break;
 	case TAP_STATE_1FGTAP_DRAGGING_WAIT:
 		tp_tap_dragging_wait_handle_event(tp, t, event, time, 1);
@@ -1125,6 +1505,9 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 	case TAP_STATE_3FGTAP_DRAGGING_WAIT:
 		tp_tap_dragging_wait_handle_event(tp, t, event, time, 3);
 		break;
+	case TAP_STATE_4FGTAP_DRAGGING_WAIT:
+		tp_tap_dragging_wait_handle_event(tp, t, event, time, 4);
+		break;
 	case TAP_STATE_1FGTAP_DRAGGING_OR_TAP:
 		tp_tap_dragging_tap_handle_event(tp, t, event, time, 1);
 		break;
@@ -1134,6 +1517,9 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 	case TAP_STATE_3FGTAP_DRAGGING_OR_TAP:
 		tp_tap_dragging_tap_handle_event(tp, t, event, time, 3);
 		break;
+	case TAP_STATE_4FGTAP_DRAGGING_OR_TAP:
+		tp_tap_dragging_tap_handle_event(tp, t, event, time, 4);
+		break;
 	case TAP_STATE_1FGTAP_DRAGGING_2:
 		tp_tap_dragging2_handle_event(tp, t, event, time, 1);
 		break;
@@ -1142,6 +1528,9 @@ tp_tap_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_STATE_3FGTAP_DRAGGING_2:
 		tp_tap_dragging2_handle_event(tp, t, event, time, 3);
+		break;
+	case TAP_STATE_4FGTAP_DRAGGING_2:
+		tp_tap_dragging2_handle_event(tp, t, event, time, 4);
 		break;
 	case TAP_STATE_DEAD:
 		tp_tap_dead_handle_event(tp, t, event, time);
@@ -1300,14 +1689,18 @@ tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time)
 	case TAP_STATE_1FGTAP_TAPPED:
 	case TAP_STATE_2FGTAP_TAPPED:
 	case TAP_STATE_3FGTAP_TAPPED:
+	case TAP_STATE_4FGTAP_TAPPED:
 	case TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP:
 	case TAP_STATE_2FGTAP_DRAGGING_OR_DOUBLETAP:
 	case TAP_STATE_3FGTAP_DRAGGING_OR_DOUBLETAP:
+	case TAP_STATE_4FGTAP_DRAGGING_OR_DOUBLETAP:
 	case TAP_STATE_1FGTAP_DRAGGING_OR_TAP:
 	case TAP_STATE_2FGTAP_DRAGGING_OR_TAP:
 	case TAP_STATE_3FGTAP_DRAGGING_OR_TAP:
+	case TAP_STATE_4FGTAP_DRAGGING_OR_TAP:
 	case TAP_STATE_TOUCH_2:
 	case TAP_STATE_TOUCH_3:
+	case TAP_STATE_TOUCH_4:
 		filter_motion = 1;
 		break;
 
@@ -1392,7 +1785,7 @@ tp_tap_config_count(struct libinput_device *device)
 	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
 	struct tp_dispatch *tp = tp_dispatch(dispatch);
 
-	return min(tp->ntouches, 3U); /* we only do up to 3 finger tap */
+	return min(tp->ntouches, 4U); /* we only do up to 4 finger tap */
 }
 
 static enum libinput_config_status
@@ -1659,15 +2052,19 @@ tp_tap_dragging(const struct tp_dispatch *tp)
 	case TAP_STATE_1FGTAP_DRAGGING:
 	case TAP_STATE_2FGTAP_DRAGGING:
 	case TAP_STATE_3FGTAP_DRAGGING:
+	case TAP_STATE_4FGTAP_DRAGGING:
 	case TAP_STATE_1FGTAP_DRAGGING_2:
 	case TAP_STATE_2FGTAP_DRAGGING_2:
 	case TAP_STATE_3FGTAP_DRAGGING_2:
+	case TAP_STATE_4FGTAP_DRAGGING_2:
 	case TAP_STATE_1FGTAP_DRAGGING_WAIT:
 	case TAP_STATE_2FGTAP_DRAGGING_WAIT:
 	case TAP_STATE_3FGTAP_DRAGGING_WAIT:
+	case TAP_STATE_4FGTAP_DRAGGING_WAIT:
 	case TAP_STATE_1FGTAP_DRAGGING_OR_TAP:
 	case TAP_STATE_2FGTAP_DRAGGING_OR_TAP:
 	case TAP_STATE_3FGTAP_DRAGGING_OR_TAP:
+	case TAP_STATE_4FGTAP_DRAGGING_OR_TAP:
 		return true;
 	default:
 		return false;
@@ -1681,6 +2078,7 @@ tp_tap_dragging_or_double_tapping(const struct tp_dispatch *tp)
 	case TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP:
 	case TAP_STATE_2FGTAP_DRAGGING_OR_DOUBLETAP:
 	case TAP_STATE_3FGTAP_DRAGGING_OR_DOUBLETAP:
+	case TAP_STATE_4FGTAP_DRAGGING_OR_DOUBLETAP:
 		return true;
 	default:
 		return false;

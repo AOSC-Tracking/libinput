@@ -981,6 +981,16 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_GESTURE_HOLD_END,
 
 	/**
+	 * A raw tap event means a tap on touchpad device. It's diffierent
+	 * from the tap-to-click event. A tap-to-click tap event is bound
+	 * to a certain mouse button. A raw tap event just means the tap
+	 * event itself, and it won't be bound to any other events.
+	 *
+	 * @since 1.25
+	 */
+	LIBINPUT_EVENT_RAW_TAP,
+
+	/**
 	 * @since 1.7
 	 */
 	LIBINPUT_EVENT_SWITCH_TOGGLE = 900,
@@ -4552,6 +4562,41 @@ enum libinput_config_status {
  */
 const char *
 libinput_config_status_to_str(enum libinput_config_status status);
+
+/**
+ * @ingroup event
+ *
+ * Return the raw tap event that is this input event. If the event type does
+ * not match the raw tap event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_gesture_get_base_event().
+ *
+ * @return A raw tap event, or NULL for other events
+ */
+struct libinput_event_raw_tap *
+libinput_event_get_raw_tap_event(struct libinput_event *event);
+
+/**
+ * @ingroup event_raw_tap
+ *
+ * Return the number of fingers used for a raw tap. This can be used e.g.
+ * to differentiate between 3 or 4 finger raw tap.
+ *
+ * @return the number of fingers used for a raw tap
+ */
+int
+libinput_event_raw_tap_get_finger_count(struct libinput_event_raw_tap *event);
+
+/**
+ * @ingroup event_raw_tap
+ *
+ * @note Timestamps may not always increase. See the libinput documentation
+ * for more details.
+ *
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_raw_tap_get_time(struct libinput_event_raw_tap *event);
 
 /**
  * @ingroup config
