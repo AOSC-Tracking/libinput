@@ -981,6 +981,16 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_GESTURE_HOLD_END,
 
 	/**
+	 * A raw tap event means a tap on touchpad device. It's diffierent
+	 * from the tap-to-click event. A tap-to-click tap event is bound
+	 * to a certain mouse button. A raw tap event just means the tap
+	 * event itself, and it won't be bound to any other events.
+	 *
+	 * @since 1.25
+	 */
+	LIBINPUT_EVENT_RAW_TAP,
+
+	/**
 	 * @since 1.7
 	 */
 	LIBINPUT_EVENT_SWITCH_TOGGLE = 900,
@@ -4554,6 +4564,41 @@ const char *
 libinput_config_status_to_str(enum libinput_config_status status);
 
 /**
+ * @ingroup event
+ *
+ * Return the raw tap event that is this input event. If the event type does
+ * not match the raw tap event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_gesture_get_base_event().
+ *
+ * @return A raw tap event, or NULL for other events
+ */
+struct libinput_event_raw_tap *
+libinput_event_get_raw_tap_event(struct libinput_event *event);
+
+/**
+ * @ingroup event_raw_tap
+ *
+ * Return the number of fingers used for a raw tap. This can be used e.g.
+ * to differentiate between 3 or 4 finger raw tap.
+ *
+ * @return the number of fingers used for a raw tap
+ */
+int
+libinput_event_raw_tap_get_finger_count(struct libinput_event_raw_tap *event);
+
+/**
+ * @ingroup event_raw_tap
+ *
+ * @note Timestamps may not always increase. See the libinput documentation
+ * for more details.
+ *
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_raw_tap_get_time(struct libinput_event_raw_tap *event);
+
+/**
  * @ingroup config
  */
 enum libinput_config_tap_state {
@@ -4651,6 +4696,8 @@ enum libinput_config_tap_button_map {
 	LIBINPUT_CONFIG_TAP_MAP_LRM,
 	/** 1/2/3 finger tap maps to left/middle/right*/
 	LIBINPUT_CONFIG_TAP_MAP_LMR,
+	/** 1/2/3 finger tap maps to left/right/none */
+	LIBINPUT_CONFIG_TAP_MAP_LRN,
 };
 
 /**
@@ -4730,6 +4777,21 @@ libinput_device_config_tap_get_button_map(struct libinput_device *device);
  */
 enum libinput_config_tap_button_map
 libinput_device_config_tap_get_default_button_map(struct libinput_device *device);
+
+/**
+ * @ingroup config
+ *
+ * Returns a bitmask of the configurable tap button maps available on
+ * this device.
+ *
+ * @param device The device to configure
+ *
+ * @return A bitmask of all tap button maps available on this device.
+ *
+ * @since 1.25
+ */
+uint32_t
+libinput_device_config_tap_get_maps(struct libinput_device *device);
 
 /**
  * @ingroup config

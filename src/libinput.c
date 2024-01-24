@@ -112,6 +112,7 @@ event_type_to_str(enum libinput_event_type type)
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_PINCH_END);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_HOLD_BEGIN);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_GESTURE_HOLD_END);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_RAW_TAP);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_SWITCH_TOGGLE);
 	case LIBINPUT_EVENT_NONE:
 		abort();
@@ -204,6 +205,12 @@ struct libinput_event_gesture {
 	struct normalized_coords delta_unaccel;
 	double scale;
 	double angle;
+};
+
+struct libinput_event_raw_tap {
+	struct libinput_event base;
+	uint64_t time;
+	int finger_count;
 };
 
 struct libinput_event_tablet_tool {
@@ -3098,6 +3105,28 @@ gesture_notify_hold_end(struct libinput_device *device,
 }
 
 void
+raw_tap_notify(struct libinput_device *device,
+	       uint64_t time,
+	       enum libinput_event_type type,
+	       int finger_count)
+{
+	struct libinput_event_raw_tap *raw_tap_event;
+
+	if (!device_has_cap(device, LIBINPUT_DEVICE_CAP_POINTER))
+		return;
+
+	raw_tap_event = zalloc(sizeof *raw_tap_event);
+
+	*raw_tap_event = (struct libinput_event_raw_tap) {
+		.time = time,
+		.finger_count = finger_count,
+	};
+
+	post_device_event(device, time, type,
+			  &raw_tap_event->base);
+}
+
+void
 switch_notify_toggle(struct libinput_device *device,
 		     uint64_t time,
 		     enum libinput_switch sw,
@@ -3868,6 +3897,39 @@ libinput_config_status_to_str(enum libinput_config_status status)
 	return str;
 }
 
+LIBINPUT_EXPORT struct libinput_event_raw_tap *
+libinput_event_get_raw_tap_event(struct libinput_event *event)
+{
+	require_event_type(libinput_event_get_context(event),
+			   event->type,
+			   NULL,
+			   LIBINPUT_EVENT_RAW_TAP);
+
+	return (struct libinput_event_raw_tap *) event;
+}
+
+LIBINPUT_EXPORT int
+libinput_event_raw_tap_get_finger_count(struct libinput_event_raw_tap *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_RAW_TAP);
+
+	return event->finger_count;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_raw_tap_get_time(struct libinput_event_raw_tap *event)
+{
+	require_event_type(libinput_event_get_context(&event->base),
+			   event->base.type,
+			   0,
+			   LIBINPUT_EVENT_RAW_TAP);
+
+	return us2ms(event->time);
+}
+
 LIBINPUT_EXPORT int
 libinput_device_config_tap_get_finger_count(struct libinput_device *device)
 {
@@ -3915,6 +3977,7 @@ libinput_device_config_tap_set_button_map(struct libinput_device *device,
 	switch (map) {
 	case LIBINPUT_CONFIG_TAP_MAP_LRM:
 	case LIBINPUT_CONFIG_TAP_MAP_LMR:
+	case LIBINPUT_CONFIG_TAP_MAP_LRN:
 		break;
 	default:
 		return LIBINPUT_CONFIG_STATUS_INVALID;
@@ -3942,6 +4005,15 @@ libinput_device_config_tap_get_default_button_map(struct libinput_device *device
 		return LIBINPUT_CONFIG_TAP_MAP_LRM;
 
 	return device->config.tap->get_default_map(device);
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_device_config_tap_get_maps(struct libinput_device *device)
+{
+	if (libinput_device_config_tap_get_enabled(device) == LIBINPUT_CONFIG_TAP_DISABLED)
+		return 0;
+
+	return device->config.tap->get_maps(device);
 }
 
 LIBINPUT_EXPORT enum libinput_config_status

@@ -117,7 +117,7 @@ Sets the type of the custom acceleration function.
 Defaults to fallback.
 This only applies to the custom profile.
 .TP 8
-.B \-\-set\-tap\-map=[lrm|lmr]
+.B \-\-set\-tap\-map=[lrm|lmr|lrn]
 Set button mapping for tapping
 .TP 8
 .B \-\-set\-rotation\-angle=<degrees>

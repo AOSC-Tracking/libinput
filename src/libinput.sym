@@ -333,3 +333,10 @@ LIBINPUT_1.23 {
 	libinput_device_config_accel_apply;
 	libinput_config_accel_set_points;
 } LIBINPUT_1.21;
+
+LIBINPUT_1.25 {
+	libinput_event_get_raw_tap_event;
+	libinput_event_raw_tap_get_finger_count;
+	libinput_event_raw_tap_get_time;
+	libinput_device_config_tap_get_maps;
+} LIBINPUT_1.23;

@@ -516,7 +516,7 @@ tp_gesture_use_hold_timer(struct tp_dispatch *tp)
 	/* If the number of fingers on the touchpad exceeds the number of
 	 * allowed fingers to tap, use the timer.
 	 */
-	if (tp->gesture.finger_count > 3)
+	if (tp->gesture.finger_count > 4)
 		return true;
 
 	/* If the tap state machine is already in a hold status, for example
@@ -524,7 +524,8 @@ tp_gesture_use_hold_timer(struct tp_dispatch *tp)
 	 */
 	if (tp->tap.state == TAP_STATE_HOLD ||
 	    tp->tap.state == TAP_STATE_TOUCH_2_HOLD ||
-	    tp->tap.state == TAP_STATE_TOUCH_3_HOLD)
+	    tp->tap.state == TAP_STATE_TOUCH_3_HOLD ||
+		tp->tap.state == TAP_STATE_TOUCH_4_HOLD)
 		return true;
 
 	/* If the tap state machine is in dead status, use the timer. This

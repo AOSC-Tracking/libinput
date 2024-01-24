@@ -57,6 +57,7 @@ __all_seats()
 		'--set-tap-map=[Set button mapping for tapping]:tap-map:((  \
 			lrm\:2-fingers\ right-click\ /\ 3-fingers\ middle-click \
 			lmr\:2-fingers\ middle-click\ /\ 3-fingers\ right-click \
+			lrn\:2-fingers\ right-click\ /\ 3-fingers\ none-click \
 		))' \
 		+ '(tap-to-click)' \
 		'--enable-tap[Enable tap-to-click]' \

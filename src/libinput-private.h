@@ -201,6 +201,7 @@ struct libinput_device_config_tap {
 						   enum libinput_config_tap_button_map map);
 	enum libinput_config_tap_button_map (*get_map)(struct libinput_device *device);
 	enum libinput_config_tap_button_map (*get_default_map)(struct libinput_device *device);
+	uint32_t (*get_maps)(struct libinput_device *device);
 
 	enum libinput_config_status (*set_drag_enabled)(struct libinput_device *device,
 							enum libinput_config_drag_state);
@@ -734,6 +735,12 @@ gesture_notify_hold_end(struct libinput_device *device,
 			uint64_t time,
 			int finger_count,
 			bool cancelled);
+
+void
+raw_tap_notify(struct libinput_device *device,
+	       uint64_t time,
+	       enum libinput_event_type type,
+	       int finger_count);
 
 void
 tablet_notify_axis(struct libinput_device *device,

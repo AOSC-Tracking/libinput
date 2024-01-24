@@ -1816,6 +1816,8 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 		case LIBINPUT_EVENT_GESTURE_HOLD_END:
 			handle_event_hold(ev, w);
 			break;
+		case LIBINPUT_EVENT_RAW_TAP:
+			break;
 		case LIBINPUT_EVENT_TABLET_TOOL_AXIS:
 		case LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY:
 		case LIBINPUT_EVENT_TABLET_TOOL_TIP:
