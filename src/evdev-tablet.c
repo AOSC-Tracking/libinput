@@ -1312,6 +1312,18 @@ tablet_get_tool(struct tablet_dispatch *tablet,
 	return tool;
 }
 
+static struct libinput_tablet_tool *
+tablet_get_current_tool(struct tablet_dispatch *tablet)
+{
+	if (tablet->current_tool.type == LIBINPUT_TOOL_NONE)
+		return NULL;
+
+	return tablet_get_tool(tablet,
+			       tablet->current_tool.type,
+			       tablet->current_tool.id,
+			       tablet->current_tool.serial);
+}
+
 static void
 tablet_notify_button_mask(struct tablet_dispatch *tablet,
 			  struct evdev_device *device,
@@ -2059,18 +2071,6 @@ tablet_update_tool_state(struct tablet_dispatch *tablet,
 		return true; /* need to re-process */
 	}
 	return false;
-}
-
-static struct libinput_tablet_tool *
-tablet_get_current_tool(struct tablet_dispatch *tablet)
-{
-	if (tablet->current_tool.type == LIBINPUT_TOOL_NONE)
-		return NULL;
-
-	return tablet_get_tool(tablet,
-			       tablet->current_tool.type,
-			       tablet->current_tool.id,
-			       tablet->current_tool.serial);
 }
 
 static void
