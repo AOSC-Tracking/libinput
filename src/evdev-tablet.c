@@ -1325,6 +1325,159 @@ tablet_get_current_tool(struct tablet_dispatch *tablet)
 }
 
 static void
+evdev_tablet_stop_scroll(struct evdev_device *device,
+		struct libinput_tablet_tool* tool,
+		uint64_t time,
+		enum libinput_tablet_tool_axis_source source)
+{
+	const struct normalized_coords zero = { 0.0, 0.0 };
+
+	/* terminate scrolling with a zero scroll event */
+	if (device->scroll.direction != 0) {
+		switch (source) {
+		case LIBINPUT_TABLET_TOOL_AXIS_SOURCE_CONTINUOUS:
+			evdev_notify_axis_tablet_tool_continous(device,
+					time,
+					tool,
+					device->scroll.direction,
+					&zero);
+			break;
+		default:
+			evdev_log_bug_libinput(device,
+					       "Stopping invalid scroll source %d\n",
+					       source);
+			break;
+		}
+	}
+
+	device->scroll.buildup.x = 0;
+	device->scroll.buildup.y = 0;
+	device->scroll.direction = 0;
+}
+
+#define DEFAULT_BUTTON_SCROLL_TIMEOUT ms2us(200)
+static inline void
+tablet_notify_button_scroll(struct evdev_device *device,
+		struct tablet_dispatch *tablet,
+		uint64_t time,
+		bool is_press)
+{
+	if (is_press) {
+		device->scroll.button_scroll_state = BUTTONSCROLL_BUTTON_DOWN;
+
+		enum timer_flags flags = TIMER_FLAG_NONE;
+		libinput_timer_set_flags(&device->scroll.timer,
+				time + DEFAULT_BUTTON_SCROLL_TIMEOUT,
+				flags);
+		device->scroll.button_down_time = time;
+		evdev_log_debug(device, "btnscroll: down\n");
+	} else {
+		struct libinput_tablet_tool *tool;
+		tool = tablet_get_current_tool(tablet);
+		if (!tool)
+			return; /* OOM */
+
+		libinput_timer_cancel(&device->scroll.timer);
+		switch(device->scroll.button_scroll_state) {
+		case BUTTONSCROLL_IDLE:
+			evdev_log_bug_libinput(device,
+				       "invalid state IDLE for button up\n");
+			break;
+		case BUTTONSCROLL_BUTTON_DOWN:
+		case BUTTONSCROLL_READY:
+			evdev_log_debug(device, "btnscroll: cancel\n");
+
+			enum libinput_tablet_tool_tip_state tip_state;
+			if (tablet_has_status(tablet, TABLET_TOOL_IN_CONTACT))
+				tip_state = LIBINPUT_TABLET_TOOL_TIP_DOWN;
+			else
+				tip_state = LIBINPUT_TABLET_TOOL_TIP_UP;
+
+			/* If the button is released quickly enough or
+			 * without scroll events, emit the
+			 * button press/release events. */
+			tablet_notify_button(&device->base,
+					device->scroll.button_down_time,
+					tool,
+					tip_state,
+					&tablet->axes,
+					device->scroll.button,
+					LIBINPUT_BUTTON_STATE_PRESSED);
+			tablet_notify_button(&device->base,
+					time,
+					tool,
+					tip_state,
+					&tablet->axes,
+					device->scroll.button,
+					LIBINPUT_BUTTON_STATE_RELEASED);
+			break;
+		case BUTTONSCROLL_SCROLLING:
+			evdev_log_debug(device, "btnscroll: up\n");
+			evdev_tablet_stop_scroll(device, tool, time,
+					  LIBINPUT_TABLET_TOOL_AXIS_SOURCE_CONTINUOUS);
+			break;
+		}
+
+		device->scroll.button_scroll_state = BUTTONSCROLL_IDLE;
+	}
+}
+#undef DEFAULT_BUTTON_SCROLL_TIMEOUT
+
+#define __SIGN(x) ((x > 0) - (x < 0))
+#define TABLET_TOOL_SCROLL_MINIMUM 2
+#define TABLET_TOOL_SCROLL_REDUCER 8
+static inline bool
+post_button_scroll(struct evdev_device *device,
+		struct tablet_dispatch *tablet,
+		uint64_t time)
+{
+	if (device->scroll.method != LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN)
+		return false;
+
+	switch(device->scroll.button_scroll_state) {
+	case BUTTONSCROLL_IDLE:
+		return false;
+	case BUTTONSCROLL_BUTTON_DOWN:
+		/* if the button is down but scroll is not active, we're within the
+		   timeout where we swallow motion events but don't post
+		   scroll buttons */
+		evdev_log_debug(device, "btnscroll: discarding\n");
+		return true;
+	case BUTTONSCROLL_READY:
+		device->scroll.button_scroll_state = BUTTONSCROLL_SCROLLING;
+		_fallthrough_;
+	case BUTTONSCROLL_SCROLLING:
+		{
+			struct normalized_coords normalized = { tablet->current_value[1] - tablet->prev_value[1] , tablet->current_value[2] - tablet->prev_value[2] };
+
+			normalized.x = normalized.x / TABLET_TOOL_SCROLL_REDUCER;
+			normalized.y = normalized.y / TABLET_TOOL_SCROLL_REDUCER;
+
+			if (fabs(normalized.x) < TABLET_TOOL_SCROLL_MINIMUM)
+				normalized.x = 0;
+			else
+				normalized.x -= __SIGN(normalized.x)*(TABLET_TOOL_SCROLL_MINIMUM-1);
+
+			if (fabs(normalized.y) < TABLET_TOOL_SCROLL_MINIMUM)
+				normalized.y = 0;
+			else
+				normalized.y -= __SIGN(normalized.y)*(TABLET_TOOL_SCROLL_MINIMUM-1);
+
+			evdev_post_tablet_tool_scroll(device, time,
+					tablet_get_current_tool(tablet),
+					LIBINPUT_TABLET_TOOL_AXIS_SOURCE_CONTINUOUS,
+					&normalized);
+		}
+		return true;
+	}
+
+	assert(!"invalid scroll button state");
+}
+#undef TABLET_TOOL_SCROLL_REDUCER
+#undef TABLET_TOOL_SCROLL_MINIMUM
+#undef __SIGN
+
+static void
 tablet_notify_button_mask(struct tablet_dispatch *tablet,
 			  struct evdev_device *device,
 			  uint64_t time,
@@ -1345,6 +1498,11 @@ tablet_notify_button_mask(struct tablet_dispatch *tablet,
 	for (i = 0; i < nbits; i++) {
 		if (!bit_is_set(buttons->bits, i))
 			continue;
+
+		if (device->scroll.method == LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN && i == device->scroll.button){
+			tablet_notify_button_scroll(device, tablet, time, state == LIBINPUT_BUTTON_STATE_PRESSED);
+			continue;
+		}
 
 		tablet_notify_button(base,
 				     time,
@@ -2116,6 +2274,8 @@ reprocess:
 		detect_tool_contact(tablet, device, tool);
 		sanitize_tablet_axes(tablet, tool);
 	}
+
+	post_button_scroll(device, tablet, time);
 
 	tablet_send_events(tablet, tool, device, time);
 

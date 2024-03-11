@@ -47,6 +47,7 @@ enum tablet_status {
 	TABLET_TOOL_ENTERING_CONTACT	= bit(9),
 	TABLET_TOOL_LEAVING_CONTACT	= bit(10),
 	TABLET_TOOL_OUT_OF_RANGE	= bit(11),
+	TABLET_IN_SCROLL                = bit(12),
 };
 
 struct button_state {
