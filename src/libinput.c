@@ -100,6 +100,7 @@ event_type_to_str(enum libinput_event_type type)
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_TIP);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
+	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_BUTTON);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_RING);
 	CASE_RETURN_STRING(LIBINPUT_EVENT_TABLET_PAD_STRIP);
@@ -436,7 +437,8 @@ libinput_event_get_tablet_tool_event(struct libinput_event *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
-			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return (struct libinput_event_tablet_tool *) event;
 }
@@ -1133,7 +1135,8 @@ libinput_event_tablet_tool_x_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_X);
@@ -1149,7 +1152,8 @@ libinput_event_tablet_tool_y_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_Y);
@@ -1165,7 +1169,8 @@ libinput_event_tablet_tool_pressure_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_PRESSURE);
@@ -1181,7 +1186,8 @@ libinput_event_tablet_tool_distance_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_DISTANCE);
@@ -1197,7 +1203,8 @@ libinput_event_tablet_tool_tilt_x_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_TILT_X);
@@ -1213,7 +1220,8 @@ libinput_event_tablet_tool_tilt_y_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_TILT_Y);
@@ -1229,7 +1237,8 @@ libinput_event_tablet_tool_rotation_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_ROTATION_Z);
@@ -1245,7 +1254,8 @@ libinput_event_tablet_tool_slider_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_SLIDER);
@@ -1261,7 +1271,8 @@ libinput_event_tablet_tool_size_major_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_SIZE_MAJOR);
@@ -1277,7 +1288,8 @@ libinput_event_tablet_tool_size_minor_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_SIZE_MINOR);
@@ -1293,7 +1305,8 @@ libinput_event_tablet_tool_wheel_has_changed(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return bit_is_set(event->changed_axes,
 			  LIBINPUT_TABLET_TOOL_AXIS_REL_WHEEL);
@@ -1310,7 +1323,8 @@ libinput_event_tablet_tool_get_x(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return evdev_convert_to_mm(device->abs.absinfo_x,
 				   event->axes.point.x);
@@ -1327,7 +1341,8 @@ libinput_event_tablet_tool_get_y(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return evdev_convert_to_mm(device->abs.absinfo_y,
 				   event->axes.point.y);
@@ -1342,7 +1357,8 @@ libinput_event_tablet_tool_get_dx(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.delta.x;
 }
@@ -1356,7 +1372,8 @@ libinput_event_tablet_tool_get_dy(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.delta.y;
 }
@@ -1370,7 +1387,8 @@ libinput_event_tablet_tool_get_pressure(struct libinput_event_tablet_tool *event
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.pressure;
 }
@@ -1384,7 +1402,8 @@ libinput_event_tablet_tool_get_distance(struct libinput_event_tablet_tool *event
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.distance;
 }
@@ -1398,7 +1417,8 @@ libinput_event_tablet_tool_get_tilt_x(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.tilt.x;
 }
@@ -1412,7 +1432,8 @@ libinput_event_tablet_tool_get_tilt_y(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.tilt.y;
 }
@@ -1426,7 +1447,8 @@ libinput_event_tablet_tool_get_rotation(struct libinput_event_tablet_tool *event
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.rotation;
 }
@@ -1440,7 +1462,8 @@ libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.slider;
 }
@@ -1454,7 +1477,8 @@ libinput_event_tablet_tool_get_size_major(struct libinput_event_tablet_tool *eve
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.size.major;
 }
@@ -1468,7 +1492,8 @@ libinput_event_tablet_tool_get_size_minor(struct libinput_event_tablet_tool *eve
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.size.minor;
 }
@@ -1482,7 +1507,8 @@ libinput_event_tablet_tool_get_wheel_delta(struct libinput_event_tablet_tool *ev
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.wheel;
 }
@@ -1497,7 +1523,8 @@ libinput_event_tablet_tool_get_wheel_delta_discrete(
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->axes.wheel_discrete;
 }
@@ -1514,7 +1541,8 @@ libinput_event_tablet_tool_get_x_transformed(struct libinput_event_tablet_tool *
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return evdev_device_transform_x(device,
 					event->axes.point.x,
@@ -1533,7 +1561,8 @@ libinput_event_tablet_tool_get_y_transformed(struct libinput_event_tablet_tool *
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return evdev_device_transform_y(device,
 					event->axes.point.y,
@@ -1549,7 +1578,8 @@ libinput_event_tablet_tool_get_tool(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->tool;
 }
@@ -1563,7 +1593,8 @@ libinput_event_tablet_tool_get_proximity_state(struct libinput_event_tablet_tool
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->proximity_state;
 }
@@ -1577,7 +1608,8 @@ libinput_event_tablet_tool_get_tip_state(struct libinput_event_tablet_tool *even
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->tip_state;
 }
@@ -1591,7 +1623,8 @@ libinput_event_tablet_tool_get_time(struct libinput_event_tablet_tool *event)
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return us2ms(event->time);
 }
@@ -1605,7 +1638,8 @@ libinput_event_tablet_tool_get_time_usec(struct libinput_event_tablet_tool *even
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
-			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY);
+			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return event->time;
 }
@@ -2026,6 +2060,7 @@ libinput_event_destroy(struct libinput_event *event)
 	case LIBINPUT_EVENT_TABLET_TOOL_AXIS:
 	case LIBINPUT_EVENT_TABLET_TOOL_TIP:
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
+	case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
 		libinput_event_tablet_tool_destroy(
 		   libinput_event_get_tablet_tool_event(event));
 		break;
@@ -3642,7 +3677,8 @@ libinput_event_tablet_tool_get_base_event(struct libinput_event_tablet_tool *eve
 			   LIBINPUT_EVENT_TABLET_TOOL_AXIS,
 			   LIBINPUT_EVENT_TABLET_TOOL_TIP,
 			   LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY,
-			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON);
+			   LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
+			   LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS);
 
 	return &event->base;
 }

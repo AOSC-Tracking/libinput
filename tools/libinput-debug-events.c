@@ -146,6 +146,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 		type = "TABLET_TOOL_BUTTON";
 		break;
+	case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
+		type = "TABLET_TOOL_SCROLL_CONTINOUS";
+		break;
 	case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
 		type = "TABLET_PAD_BUTTON";
 		break;
@@ -488,6 +491,13 @@ print_tablet_button_event(struct libinput_event *ev)
 	       buttonname ? buttonname : "???",
 	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released",
 	       libinput_event_tablet_tool_get_seat_button_count(p));
+}
+
+static void
+print_tablet_tool_scroll_event(struct libinput_event *ev)
+{
+	// FIXME: done in a later commit
+	printq("FIXME");
 }
 
 static void
@@ -948,6 +958,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 			print_tablet_button_event(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
+			print_tablet_tool_scroll_event(ev);
 			break;
 		case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
 			print_tablet_pad_button_event(ev);

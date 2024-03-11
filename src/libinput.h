@@ -942,6 +942,13 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_TABLET_TOOL_BUTTON,
 
 	/**
+	 * A scroll event caused by the movement of tablet tool while scroll button is holded
+	 *
+	 * @since FIXME
+	 */
+	LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS,
+
+	/**
 	 * A button pressed on a device with the @ref
 	 * LIBINPUT_DEVICE_CAP_TABLET_PAD capability.
 	 *
