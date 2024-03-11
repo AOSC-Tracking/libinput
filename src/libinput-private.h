@@ -673,6 +673,13 @@ pointer_notify_axis_continuous(struct libinput_device *device,
 			       const struct normalized_coords *delta);
 
 void
+tablet_tool_notify_axis_continuous(struct libinput_device *device,
+			       uint64_t time,
+			       struct libinput_tablet_tool *tool,
+			       uint32_t scroll_axes,
+			       const struct normalized_coords *delta);
+
+void
 pointer_notify_axis_legacy_wheel(struct libinput_device *device,
 				 uint64_t time,
 				 uint32_t axes,
@@ -781,6 +788,15 @@ tablet_notify_tip(struct libinput_device *device,
 		  enum libinput_tablet_tool_tip_state tip_state,
 		  unsigned char *changed_axes,
 		  const struct tablet_axes *axes);
+
+void
+tablet_tool_notify_button(struct libinput_device *device,
+		  uint64_t time,
+		  struct libinput_tablet_tool *tool,
+		  enum libinput_tablet_tool_tip_state tip_state,
+		  const struct tablet_axes *axes,
+		  int32_t button,
+		  enum libinput_button_state state);
 
 void
 tablet_notify_button(struct libinput_device *device,

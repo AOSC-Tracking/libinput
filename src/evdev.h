@@ -568,6 +568,11 @@ evdev_pointer_notify_button(struct evdev_device *device,
 			    unsigned int button,
 			    enum libinput_button_state state);
 void
+evdev_tablet_tool_notify_button(struct evdev_device *device,
+			    uint64_t time,
+			    unsigned int button,
+			    enum libinput_button_state state);
+void
 evdev_pointer_notify_physical_button(struct evdev_device *device,
 				     uint64_t time,
 				     int button,
@@ -613,6 +618,13 @@ evdev_notify_axis_continous(struct evdev_device *device,
 			    const struct normalized_coords *delta_in);
 
 void
+evdev_notify_axis_tablet_tool_continous(struct evdev_device *device,
+			    uint64_t time,
+			    struct libinput_tablet_tool *tool,
+			    uint32_t scroll_axes,
+			    const struct normalized_coords *delta_in);
+
+void
 evdev_post_scroll(struct evdev_device *device,
 		  uint64_t time,
 		  enum libinput_pointer_axis_source source,
@@ -622,6 +634,18 @@ void
 evdev_stop_scroll(struct evdev_device *device,
 		  uint64_t time,
 		  enum libinput_pointer_axis_source source);
+
+void
+evdev_post_tablet_tool_scroll(struct evdev_device *device,
+		  uint64_t time,
+		  struct libinput_tablet_tool *tool,
+		  enum libinput_tablet_tool_axis_source source,
+		  const struct normalized_coords *delta);
+
+void
+evdev_stop_tablet_tool_scroll(struct evdev_device *device,
+		  uint64_t time,
+		  enum libinput_tablet_tool_axis_source source);
 
 void
 evdev_device_remove(struct evdev_device *device);

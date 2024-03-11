@@ -499,6 +499,27 @@ evdev_notify_axis_continous(struct evdev_device *device,
 				       &delta);
 }
 
+void
+evdev_notify_axis_tablet_tool_continous(struct evdev_device *device,
+			    uint64_t time,
+			    struct libinput_tablet_tool *tool,
+			    uint32_t scroll_axes,
+			    const struct normalized_coords *delta_in)
+{
+	struct normalized_coords delta = *delta_in;
+
+	if (device->scroll.natural_scrolling_enabled) {
+		delta.x *= -1;
+		delta.y *= -1;
+	}
+
+	tablet_tool_notify_axis_continuous(&device->base,
+				       time,
+				       tool,
+				       scroll_axes,
+				       &delta);
+}
+
 static void
 evdev_tag_external_mouse(struct evdev_device *device,
 			 struct udev_device *udev_device)
@@ -2914,6 +2935,114 @@ evdev_stop_scroll(struct evdev_device *device,
 						   &zero);
 			break;
 		case LIBINPUT_POINTER_AXIS_SOURCE_CONTINUOUS:
+			pointer_notify_axis_continuous(&device->base,
+						       time,
+						       device->scroll.direction,
+						       &zero);
+			break;
+		default:
+			evdev_log_bug_libinput(device,
+					       "Stopping invalid scroll source %d\n",
+					       source);
+			break;
+		}
+	}
+
+	device->scroll.buildup.x = 0;
+	device->scroll.buildup.y = 0;
+	device->scroll.direction = 0;
+}
+
+void
+evdev_post_tablet_tool_scroll(struct evdev_device *device,
+		  uint64_t time,
+		  struct libinput_tablet_tool *tool,
+		  enum libinput_tablet_tool_axis_source source,
+		  const struct normalized_coords *delta)
+{
+	const struct normalized_coords *trigger;
+	struct normalized_coords event;
+
+	if (!evdev_is_scrolling(device,
+				LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))
+		device->scroll.buildup.y += delta->y;
+	if (!evdev_is_scrolling(device,
+				LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
+		device->scroll.buildup.x += delta->x;
+
+	trigger = &device->scroll.buildup;
+
+	/* If we're not scrolling yet, use a distance trigger: moving
+	   past a certain distance starts scrolling */
+	if (!evdev_is_scrolling(device,
+				LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL) &&
+	    !evdev_is_scrolling(device,
+				LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
+		if (fabs(trigger->y) >= device->scroll.threshold)
+			evdev_start_scrolling(device,
+					      LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+		if (fabs(trigger->x) >= device->scroll.threshold)
+			evdev_start_scrolling(device,
+					      LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+	/* We're already scrolling in one direction. Require some
+	   trigger speed to start scrolling in the other direction */
+	} else if (!evdev_is_scrolling(device,
+			       LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL)) {
+		if (fabs(delta->y) >= device->scroll.direction_lock_threshold)
+			evdev_start_scrolling(device,
+				      LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+	} else if (!evdev_is_scrolling(device,
+				LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL)) {
+		if (fabs(delta->x) >= device->scroll.direction_lock_threshold)
+			evdev_start_scrolling(device,
+				      LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+	}
+
+	event = *delta;
+
+	/* We use the trigger to enable, but the delta from this event for
+	 * the actual scroll movement. Otherwise we get a jump once
+	 * scrolling engages */
+	if (!evdev_is_scrolling(device,
+			       LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL))
+		event.y = 0.0;
+
+	if (!evdev_is_scrolling(device,
+			       LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL))
+		event.x = 0.0;
+
+	if (!normalized_is_zero(event)) {
+		uint32_t scroll_axes = device->scroll.direction;
+
+		if (event.y == 0.0)
+			scroll_axes &= ~bit(LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+		if (event.x == 0.0)
+			scroll_axes &= ~bit(LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+
+		switch (source) {
+		case LIBINPUT_TABLET_TOOL_AXIS_SOURCE_CONTINUOUS:
+			evdev_notify_axis_tablet_tool_continous(device, time, tool, scroll_axes, &event);
+			break;
+		default:
+			evdev_log_bug_libinput(device,
+					       "Posting invalid scroll source %d\n",
+					       source);
+			break;
+		}
+	}
+}
+
+void
+evdev_stop_tablet_tool_scroll(struct evdev_device *device,
+		  uint64_t time,
+		  enum libinput_tablet_tool_axis_source source)
+{
+	const struct normalized_coords zero = { 0.0, 0.0 };
+
+	/* terminate scrolling with a zero scroll event */
+	if (device->scroll.direction != 0) {
+		switch (source) {
+		case LIBINPUT_TABLET_TOOL_AXIS_SOURCE_CONTINUOUS:
 			pointer_notify_axis_continuous(&device->base,
 						       time,
 						       device->scroll.direction,

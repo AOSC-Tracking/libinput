@@ -346,4 +346,7 @@ LIBINPUT_1.26 {
   libinput_tablet_tool_config_pressure_range_get_maximum;
   libinput_tablet_tool_config_pressure_range_get_default_minimum;
   libinput_tablet_tool_config_pressure_range_get_default_maximum;
+  libinput_event_tablet_tool_has_axis;
+  libinput_event_tablet_tool_get_scroll_value;
+  libinput_event_tablet_tool_get_axis_source;
 } LIBINPUT_1.23;

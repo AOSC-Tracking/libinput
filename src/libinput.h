@@ -322,6 +322,24 @@ enum libinput_tablet_pad_strip_axis_source {
 };
 
 /**
+ * @ingroup event_tablet_pad
+ *
+ * The source for a @ref LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS event.
+ * See libinput_event_tablet_tool_get_axis_source() for details.
+ *
+ * @since 1.3
+ */
+enum libinput_tablet_tool_axis_source {
+	LIBINPUT_TABLET_TOOL_AXIS_SOURCE_UNKNOWN = 1,
+
+	/**
+	 * The event is caused by the movement of the tool
+	 * while the scroll button is being held down
+	 */
+	LIBINPUT_TABLET_TOOL_AXIS_SOURCE_CONTINUOUS,
+};
+
+/**
  * @ingroup device
  *
  * Available tool types for a device with the @ref
@@ -1542,6 +1560,10 @@ int
 libinput_event_pointer_has_axis(struct libinput_event_pointer *event,
 				enum libinput_pointer_axis axis);
 
+int
+libinput_event_tablet_tool_has_axis(struct libinput_event_tablet_tool *event,
+				enum libinput_pointer_axis axis);
+
 /**
  * @ingroup event_pointer
  *
@@ -1698,6 +1720,10 @@ libinput_event_pointer_get_axis_value_discrete(struct libinput_event_pointer *ev
  */
 double
 libinput_event_pointer_get_scroll_value(struct libinput_event_pointer *event,
+					enum libinput_pointer_axis axis);
+
+double
+libinput_event_tablet_tool_get_scroll_value(struct libinput_event_tablet_tool *event,
 					enum libinput_pointer_axis axis);
 
 /**
@@ -3268,6 +3294,9 @@ libinput_event_tablet_pad_get_strip_number(struct libinput_event_tablet_pad *eve
  */
 enum libinput_tablet_pad_strip_axis_source
 libinput_event_tablet_pad_get_strip_source(struct libinput_event_tablet_pad *event);
+
+enum libinput_tablet_tool_axis_source
+libinput_event_tablet_tool_get_axis_source(struct libinput_event_tablet_tool *event);
 
 /**
  * @ingroup event_tablet_pad
