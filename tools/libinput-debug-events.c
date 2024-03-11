@@ -496,8 +496,39 @@ print_tablet_button_event(struct libinput_event *ev)
 static void
 print_tablet_tool_scroll_event(struct libinput_event *ev)
 {
-	// FIXME: done in a later commit
-	printq("FIXME");
+	struct libinput_event_tablet_tool *t = libinput_event_get_tablet_tool_event(ev);
+	double v = 0, h = 0;
+	const char *have_vert = "",
+		   *have_horiz = "";
+	const char *source = NULL;
+	enum libinput_pointer_axis axis;
+	enum libinput_event_type type;
+
+	type = libinput_event_get_type(ev);
+
+	switch (type) {
+	case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
+		source = "continuous";
+		break;
+	default:
+		abort();
+		break;
+	}
+
+	axis = LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL;
+	if (libinput_event_tablet_tool_has_axis(t, axis)) {
+		v = libinput_event_tablet_tool_get_scroll_value(t, axis);
+		have_vert = "*";
+	}
+	axis = LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL;
+	if (libinput_event_tablet_tool_has_axis(t, axis)) {
+		h = libinput_event_tablet_tool_get_scroll_value(t, axis);
+		have_horiz = "*";
+	}
+
+	printq("vert %.2f%s horiz %.2f%s (%s)\n",
+	       v, have_vert,
+	       h, have_horiz, source);
 }
 
 static void
