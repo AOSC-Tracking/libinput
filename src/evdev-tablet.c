@@ -2734,6 +2734,27 @@ tablet_fix_tilt(struct tablet_dispatch *tablet,
 	}
 }
 
+static void
+tablet_change_scroll_method(struct evdev_device *device)
+{
+	// FIXME
+	//struct tablet_dispatch *dispatch = tablet_dispatch(device->dispatch);
+
+	if (device->scroll.want_method == device->scroll.method &&
+	    device->scroll.want_button == device->scroll.button &&
+	    device->scroll.want_lock_enabled == device->scroll.lock_enabled)
+		return;
+
+	// FIXME
+	//if (tablet_any_button_down(dispatch, device))
+	//	return;
+
+	device->scroll.method = device->scroll.want_method;
+	device->scroll.button = device->scroll.want_button;
+	device->scroll.lock_enabled = device->scroll.want_lock_enabled;
+	evdev_set_button_scroll_lock_enabled(device, device->scroll.lock_enabled);
+}
+
 static int
 tablet_init(struct tablet_dispatch *tablet,
 	    struct evdev_device *device)
@@ -2747,6 +2768,9 @@ tablet_init(struct tablet_dispatch *tablet,
 	tablet->device = device;
 	tablet->status = TABLET_NONE;
 	tablet->current_tool.type = LIBINPUT_TOOL_NONE;
+
+	evdev_init_button_scroll(device, tablet_change_scroll_method);
+
 	list_init(&tablet->tool_list);
 
 	if (tablet_reject_device(device))
