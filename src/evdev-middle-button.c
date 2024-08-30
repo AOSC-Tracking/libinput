@@ -135,7 +135,8 @@ middlebutton_post_event(struct evdev_device *device,
 	evdev_pointer_notify_button(device,
 				    now,
 				    button,
-				    state);
+				    state,
+				    false);
 }
 
 static int

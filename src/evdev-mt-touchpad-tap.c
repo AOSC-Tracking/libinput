@@ -146,7 +146,8 @@ tp_tap_notify(struct tp_dispatch *tp,
 	evdev_pointer_notify_button(tp->device,
 				    time,
 				    button,
-				    state);
+				    state,
+				    true);
 }
 
 static void

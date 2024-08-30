@@ -566,7 +566,8 @@ void
 evdev_pointer_notify_button(struct evdev_device *device,
 			    uint64_t time,
 			    unsigned int button,
-			    enum libinput_button_state state);
+			    enum libinput_button_state state,
+			    bool is_tap);
 void
 evdev_pointer_notify_physical_button(struct evdev_device *device,
 				     uint64_t time,
