@@ -214,7 +214,9 @@ check-whitespace:
     # search for duplicated empty lines
     - sed -i '/^$/N;/^\n$/D' $(git ls-files src/*.{h,c} tools/*.{h,c} udev/*.c)
     - git diff --exit-code || (echo "ERROR - Duplicated empty lines, please fix" && false)
-
+    # add missing empty line at the end of file
+    - git ls-files -z src/*.{h,c} tools/*.{h,c} udev/*.c quirks/*.quirks | while IFS= read -rd '' f; do if file --brief --mime-encoding "$f" | grep -qv binary; then tail -c1 < "$f" | read -r _ || echo >> "$f"; fi; done
+    - git diff --exit-code || (echo "ERROR - Missing empty line at the end of file, please fix" && false)
 
 #################################################################
 #                                                               #
