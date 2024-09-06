@@ -1514,6 +1514,94 @@ tp_gesture_get_hold_default(struct libinput_device *device)
 	       LIBINPUT_CONFIG_HOLD_DISABLED;
 }
 
+static int
+tp_3fg_drag_count(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	/* If we can't to gestures we can't do 3fg drag */
+	if (!tp_gesture_are_gestures_enabled(tp))
+		return 0;
+
+	/* For now return the number of MT slots until we need to figure out
+	 * if we can implement this on a 2-finger BTN_TOOL_TRIPLETAP device */
+	return tp->num_slots;
+}
+
+static enum libinput_config_status
+tp_3fg_drag_set_enabled(struct libinput_device *device,
+			enum libinput_config_3fg_drag_state enabled)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	if (tp_3fg_drag_count(device) < 3)
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+
+	switch (enabled) {
+	case LIBINPUT_CONFIG_3FG_DRAG_DISABLED:
+		tp->drag_3fg.want_nfingers = 0;
+		break;
+	case LIBINPUT_CONFIG_3FG_DRAG_ENABLED_3FG:
+		tp->drag_3fg.want_nfingers = 3;
+		break;
+	case LIBINPUT_CONFIG_3FG_DRAG_ENABLED_4FG:
+		tp->drag_3fg.want_nfingers = 4;
+		break;
+	}
+
+	tp_3fg_drag_apply_config(evdev_device(device));
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
+static enum libinput_config_3fg_drag_state
+tp_3fg_drag_get_enabled(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	switch (tp->drag_3fg.want_nfingers) {
+	case 3:
+		return LIBINPUT_CONFIG_3FG_DRAG_ENABLED_3FG;
+	case 4:
+		return LIBINPUT_CONFIG_3FG_DRAG_ENABLED_4FG;
+	}
+	return LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
+}
+
+static enum libinput_config_3fg_drag_state
+tp_3fg_drag_default(struct tp_dispatch *tp)
+{
+	return LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
+}
+
+static enum libinput_config_3fg_drag_state
+tp_3fg_drag_get_default_enabled(struct libinput_device *device)
+{
+	struct evdev_dispatch *dispatch = evdev_device(device)->dispatch;
+	struct tp_dispatch *tp = tp_dispatch(dispatch);
+
+	return tp_3fg_drag_default(tp);
+}
+
+void
+tp_3fg_drag_apply_config(struct evdev_device *device)
+{
+	struct tp_dispatch *tp = (struct tp_dispatch *)device->dispatch;
+
+	if (tp->drag_3fg.want_nfingers == tp->drag_3fg.nfingers)
+		return;
+
+	if (tp->nfingers_down)
+		return;
+
+	tp->drag_3fg.nfingers = tp->drag_3fg.want_nfingers;
+
+	evdev_log_debug(device, "touchpad-3fg-drag: drag is now for %zd fingers\n", tp->drag_3fg.nfingers);
+}
+
 void
 tp_init_gesture(struct tp_dispatch *tp)
 {
@@ -1523,6 +1611,14 @@ tp_init_gesture(struct tp_dispatch *tp)
 	tp->gesture.config.get_hold_enabled = tp_gesture_is_hold_enabled;
 	tp->gesture.config.get_hold_default = tp_gesture_get_hold_default;
 	tp->device->base.config.gesture = &tp->gesture.config;
+
+	tp->drag_3fg.config.count = tp_3fg_drag_count;
+	tp->drag_3fg.config.set_enabled = tp_3fg_drag_set_enabled;
+	tp->drag_3fg.config.get_enabled = tp_3fg_drag_get_enabled;
+	tp->drag_3fg.config.get_default = tp_3fg_drag_get_default_enabled;
+	tp->device->base.config.drag_3fg = &tp->drag_3fg.config;
+
+	tp->drag_3fg.nfingers = tp_3fg_drag_default(tp);
 
 	/* two-finger scrolling is always enabled, this flag just
 	 * decides whether we detect pinch. semi-mt devices are too

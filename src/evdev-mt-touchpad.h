@@ -441,6 +441,12 @@ struct tp_dispatch {
 	} tap;
 
 	struct {
+		struct libinput_device_config_3fg_drag config;
+		size_t nfingers;
+		size_t want_nfingers;
+	} drag_3fg;
+
+	struct {
 		struct libinput_device_config_dwtp config;
 		bool dwtp_enabled;
 
@@ -772,5 +778,8 @@ tp_init_thumb(struct tp_dispatch *tp);
 
 struct tp_touch*
 tp_thumb_get_touch(struct tp_dispatch *tp);
+
+void
+tp_3fg_drag_apply_config(struct evdev_device *device);
 
 #endif
