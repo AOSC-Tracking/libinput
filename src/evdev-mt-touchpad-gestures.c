@@ -1459,11 +1459,13 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 							GESTURE_EVENT_RESET,
 							time);
 			}
-		/* Else debounce finger changes */
+		/* Else debounce finger changes (except for 3fg drag) */
 		} else if (active_touches != tp->gesture.finger_count_pending) {
-			tp->gesture.finger_count_pending = active_touches;
-			libinput_timer_set(&tp->gesture.finger_count_switch_timer,
-				time + DEFAULT_GESTURE_SWITCH_TIMEOUT);
+			if (tp->gesture.state != GESTURE_STATE_3FG_DRAG) {
+				tp->gesture.finger_count_pending = active_touches;
+				libinput_timer_set(&tp->gesture.finger_count_switch_timer,
+					time + DEFAULT_GESTURE_SWITCH_TIMEOUT);
+			}
 		}
 	} else {
 		 tp->gesture.finger_count_pending = 0;

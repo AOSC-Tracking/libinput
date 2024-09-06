@@ -386,6 +386,21 @@ tools_parse_option(int option,
 		free(matrix);
 		break;
 		}
+	case OPT_3FG_DRAG:
+		if (!optarg)
+			return 1;
+		if (streq(optarg, "3fg"))
+			options->drag_3fg = LIBINPUT_CONFIG_3FG_DRAG_ENABLED_3FG;
+		else if (streq(optarg, "4fg"))
+			options->drag_3fg = LIBINPUT_CONFIG_3FG_DRAG_ENABLED_4FG;
+		else if (streq(optarg, "disabled"))
+			options->drag_3fg = LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
+		else {
+			fprintf(stderr, "Invalid --enable-3fg-drag\n"
+			                "Valid options: 3fg|4fg|disabled\n");
+			return 1;
+		}
+		break;
 	}
 	return 0;
 }
@@ -601,6 +616,9 @@ tools_device_apply_config(struct libinput_device *device,
 
 	if (libinput_device_config_calibration_has_matrix(device))
 		libinput_device_config_calibration_set_matrix(device, options->calibration);
+
+	if (libinput_device_config_3fg_drag_get_finger_count(device) >= 3)
+		libinput_device_config_3fg_drag_set_enabled(device, options->drag_3fg);
 }
 
 void
