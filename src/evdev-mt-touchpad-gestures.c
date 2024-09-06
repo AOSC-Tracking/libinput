@@ -1303,7 +1303,7 @@ tp_gesture_post_events(struct tp_dispatch *tp, uint64_t time,
 	 * physical button is down, don't allow gestures unless the button
 	 * is held down by a *thumb*, specifically.
 	 */
-	if (tp_tap_dragging(tp) ||
+	if (tp_tap_dragging(tp) || tp_tfd_dragging(tp) ||
 	    (tp->buttons.is_clickpad && tp->buttons.state &&
 	     tp->thumb.state == THUMB_STATE_FINGER)) {
 		if (tp->gesture.state != GESTURE_STATE_POINTER_MOTION) {
@@ -1430,7 +1430,8 @@ tp_gesture_handle_state(struct tp_dispatch *tp, uint64_t time)
 			active_touches++;
 	}
 
-	if (active_touches != tp->gesture.finger_count) {
+	if (active_touches != tp->gesture.finger_count || 
+	    (active_touches == 3 && true)) { // tp->tfd.three_finger_dragging_enabled)) {
 		/* If all fingers are lifted immediately end the gesture */
 		if (active_touches == 0) {
 			tp_gesture_stop(tp, time);

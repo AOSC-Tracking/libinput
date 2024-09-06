@@ -846,6 +846,10 @@ tp_touch_active_for_gesture(const struct tp_dispatch *tp, const struct tp_touch 
 	return (t->state == TOUCH_BEGIN || t->state == TOUCH_UPDATE) &&
 		t->palm.state == PALM_NONE &&
 		!t->pinned.is_pinned &&
+
+		/* let's see if this works */
+		!tp->tfd.cursor_pinned &&
+
 		!tp_thumb_ignored_for_gesture(tp, t) &&
 		tp_button_touch_active(tp, t) &&
 		tp_edge_scroll_touch_active(tp, t);
@@ -1862,6 +1866,8 @@ tp_post_events(struct tp_dispatch *tp, uint64_t time)
 
 	ignore_motion |= tp_tap_handle_state(tp, time);
 	ignore_motion |= tp_post_button_events(tp, time);
+
+	tp_tfd_handle_state(tp, time);
 
 	if (tp->palm.trackpoint_active || tp->dwt.keyboard_active) {
 		tp_edge_scroll_stop_events(tp, time);
@@ -3777,6 +3783,8 @@ tp_init(struct tp_dispatch *tp,
 	if (!tp_init_accel(tp, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE))
 		return false;
 
+	tp_init_tfd(tp);
+	
 	tp_init_tap(tp);
 	tp_init_buttons(tp, device);
 	tp_init_dwt(tp, device);

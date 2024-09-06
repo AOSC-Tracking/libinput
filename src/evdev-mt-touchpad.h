@@ -134,6 +134,33 @@ enum tp_tap_state {
 	TAP_STATE_DEAD, /**< finger count exceeded */
 };
 
+
+enum tp_tfd_state {
+	/* [debounce] = brief states anticipating a further increase/decrease in finger
+	count, preventing unintended drops on account of motion events */
+
+	/* waiting for 3 fingers */
+	TFD_STATE_IDLE,
+	// not used -- TODO: remove after testing drag_and_debounce
+	// /* [debounce] disambiguate between starting a drag and a possible 4+ gesture */
+	// TFD_STATE_POSSIBLE_BEGIN,
+	/* 3 fingers touching, waiting for motion or timeout */
+	TFD_STATE_AWAIT_DRAG,
+	/* [debounce] same as drag state, but cancellable in case of possible 4+ 
+	gesture. Replacement state for POSSIBLE_BEGIN */
+	TFD_STATE_DRAG_AND_DEBOUNCE,
+	/* 3 fingers touching and button press has been output */
+	TFD_STATE_DRAG,
+	/* [debounce] drag-lock; 1 finger touching, possibly going to 0 fingers.
+	Prevents premature cancellation of AWAIT_RESUME by 1 finger motion events. */
+	TFD_STATE_POSSIBLE_ZERO_FINGERS,
+	/* drag-lock; waiting for 3 finger drag continuation */
+	TFD_STATE_AWAIT_RESUME,
+	/* TODO: possible to replace this state with DRAG_AND_DEBOUNCE as well? */
+	/* [debounce] disambiguate between drag continuation and a possible 4+ gesture */
+	TFD_STATE_POSSIBLE_RESUME,
+};
+
 enum tp_tap_touch_state {
 	TAP_TOUCH_STATE_IDLE = 16,	/**< not in touch */
 	TAP_TOUCH_STATE_TOUCH,		/**< touching, may tap */
@@ -249,6 +276,13 @@ struct tp_touch {
 		bool is_thumb;
 		bool is_palm;
 	} tap;
+
+	struct {
+		// enum tp_tap_touch_state state;
+		struct device_coords previous;
+		// bool is_thumb;
+		// bool is_palm;
+	} tfd;
 
 	struct {
 		enum tp_edge_scroll_touch_state edge_state;
@@ -440,6 +474,31 @@ struct tp_dispatch {
 		unsigned int nfingers_down;	/* number of fingers down for tapping (excl. thumb/palm) */
 	} tap;
 
+		struct {
+		//struct libinput_device_config_tap config;
+		bool enabled;
+		bool suspended;
+		struct libinput_timer timer;
+		struct libinput_timer resume_timer;
+		enum tp_tfd_state state;
+		uint32_t buttons_pressed;
+		uint64_t saved_press_time,
+			 saved_release_time;
+
+		// enum libinput_config_tap_button_map map;
+		//enum libinput_config_tap_button_map want_map;
+
+		/* true if cursor movement should not be output to clients */
+		bool cursor_pinned;
+		struct device_coords pinned_point;
+
+		//bool drag_enabled;
+		//bool drag_lock_enabled;
+		bool three_finger_dragging_enabled;
+
+		unsigned int finger_count;	/* number of fingers down for 3 finger dragging */
+	} tfd;
+
 	struct {
 		struct libinput_device_config_dwtp config;
 		bool dwtp_enabled;
@@ -626,6 +685,12 @@ int
 tp_tap_handle_state(struct tp_dispatch *tp, uint64_t time);
 
 void
+tp_tfd_handle_state(struct tp_dispatch *tp, uint64_t time);
+
+void
+tp_tfd_handle_tap(struct tp_dispatch *tp, uint64_t time);
+
+void
 tp_tap_post_process_state(struct tp_dispatch *tp);
 
 void
@@ -633,6 +698,9 @@ tp_button_post_process_state(struct tp_dispatch *tp);
 
 void
 tp_init_tap(struct tp_dispatch *tp);
+
+void
+tp_init_tfd(struct tp_dispatch *tp);
 
 void
 tp_remove_tap(struct tp_dispatch *tp);
@@ -683,6 +751,9 @@ tp_tap_resume(struct tp_dispatch *tp, uint64_t time);
 
 bool
 tp_tap_dragging(const struct tp_dispatch *tp);
+
+bool
+tp_tfd_dragging(const struct tp_dispatch *tp);
 
 bool
 tp_tap_dragging_or_double_tapping(const struct tp_dispatch *tp);
