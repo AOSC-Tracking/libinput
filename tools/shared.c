@@ -128,6 +128,7 @@ tools_init_options(struct tools_options *options)
 	options->pressure_range[1] = 1.0;
 	options->calibration[0] = 1.0;
 	options->calibration[4] = 1.0;
+	options->drag_3fg = -1;
 }
 
 int
@@ -617,7 +618,8 @@ tools_device_apply_config(struct libinput_device *device,
 	if (libinput_device_config_calibration_has_matrix(device))
 		libinput_device_config_calibration_set_matrix(device, options->calibration);
 
-	if (libinput_device_config_3fg_drag_get_finger_count(device) >= 3)
+	if (options->drag_3fg != (enum libinput_config_3fg_drag_state)-1 &&
+	    libinput_device_config_3fg_drag_get_finger_count(device) >= 3)
 		libinput_device_config_3fg_drag_set_enabled(device, options->drag_3fg);
 }
 
