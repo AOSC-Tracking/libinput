@@ -1074,7 +1074,8 @@ release_pressed_keys(struct fallback_dispatch *dispatch,
 				device,
 				time,
 				code,
-				LIBINPUT_BUTTON_STATE_RELEASED);
+				LIBINPUT_BUTTON_STATE_RELEASED,
+				false);
 			break;
 		}
 

@@ -1497,6 +1497,23 @@ libinput_event_pointer_get_button_state(struct libinput_event_pointer *event);
 /**
  * @ingroup event_pointer
  *
+ * Return nonzero if this button event was triggered as a result of
+ * a touchpad tap.
+ *
+ * For pointer events that are not of type @ref
+ * LIBINPUT_EVENT_POINTER_BUTTON, this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_POINTER_BUTTON.
+ *
+ * @return True if this button event was a tap
+ */
+int
+libinput_event_pointer_get_button_is_tap(struct libinput_event_pointer *event);
+
+/**
+ * @ingroup event_pointer
+ *
  * For the button of a @ref LIBINPUT_EVENT_POINTER_BUTTON event, return the
  * total number of buttons pressed on all devices on the associated seat
  * after the event was triggered.

@@ -180,14 +180,16 @@ evdev_pointer_notify_physical_button(struct evdev_device *device,
 	evdev_pointer_notify_button(device,
 				    time,
 				    (unsigned int)button,
-				    state);
+				    state,
+				    false);
 }
 
 static void
 evdev_pointer_post_button(struct evdev_device *device,
 			  uint64_t time,
 			  unsigned int button,
-			  enum libinput_button_state state)
+			  enum libinput_button_state state,
+			  bool is_tap)
 {
 	int down_count;
 
@@ -195,7 +197,7 @@ evdev_pointer_post_button(struct evdev_device *device,
 
 	if ((state == LIBINPUT_BUTTON_STATE_PRESSED && down_count == 1) ||
 	    (state == LIBINPUT_BUTTON_STATE_RELEASED && down_count == 0)) {
-		pointer_notify_button(&device->base, time, button, state);
+		pointer_notify_button(&device->base, time, button, state, is_tap);
 
 		if (state == LIBINPUT_BUTTON_STATE_RELEASED) {
 			if (device->left_handed.change_to_enabled)
@@ -297,10 +299,12 @@ evdev_button_scroll_button(struct evdev_device *device,
 			evdev_pointer_post_button(device,
 					device->scroll.button_down_time,
 					device->scroll.button,
-					LIBINPUT_BUTTON_STATE_PRESSED);
+					LIBINPUT_BUTTON_STATE_PRESSED,
+					false);
 			evdev_pointer_post_button(device, time,
 					device->scroll.button,
-					LIBINPUT_BUTTON_STATE_RELEASED);
+					LIBINPUT_BUTTON_STATE_RELEASED,
+					false);
 			break;
 		case BUTTONSCROLL_SCROLLING:
 			evdev_log_debug(device, "btnscroll: up\n");
@@ -317,7 +321,8 @@ void
 evdev_pointer_notify_button(struct evdev_device *device,
 			    uint64_t time,
 			    unsigned int button,
-			    enum libinput_button_state state)
+			    enum libinput_button_state state,
+			    bool is_tap)
 {
 	if (device->scroll.method == LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN &&
 	    button == device->scroll.button) {
@@ -325,7 +330,7 @@ evdev_pointer_notify_button(struct evdev_device *device,
 		return;
 	}
 
-	evdev_pointer_post_button(device, time, button, state);
+	evdev_pointer_post_button(device, time, button, state, is_tap);
 }
 
 void
