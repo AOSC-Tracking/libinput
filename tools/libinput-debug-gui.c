@@ -1477,7 +1477,7 @@ handle_event_touch(struct libinput_event *ev, struct window *w)
 }
 
 static void
-handle_event_axis(struct libinput_event *ev, struct window *w)
+handle_event_pointer_axis(struct libinput_event *ev, struct window *w)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	double value;
@@ -1508,6 +1508,43 @@ handle_event_axis(struct libinput_event *ev, struct window *w)
 			w->scroll.hx_discrete += value;
 			w->scroll.hx_discrete = clip(w->scroll.hx_discrete, 0, w->width);
 		}
+	}
+}
+
+static void
+handle_event_tablet_tool_axis(struct libinput_event *ev, struct window *w)
+{
+	struct libinput_event_tablet_tool *p = libinput_event_get_tablet_tool_event(ev);
+	double value;
+	enum libinput_pointer_axis axis;
+
+	assert(p != NULL);
+
+	axis = LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL;
+	if (libinput_event_tablet_tool_has_axis(p, axis)) {
+		value = libinput_event_tablet_tool_get_scroll_value(p, axis);
+		w->scroll.vy += value;
+		w->scroll.vy = clip(w->scroll.vy, 0, w->height);
+	}
+
+	axis = LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL;
+	if (libinput_event_tablet_tool_has_axis(p, axis)) {
+		value = libinput_event_tablet_tool_get_scroll_value(p, axis);
+		w->scroll.hx += value;
+		w->scroll.hx = clip(w->scroll.hx, 0, w->width);
+	}
+}
+
+static void
+handle_event_axis(struct libinput_event *ev, struct window *w)
+{
+	switch (libinput_event_get_type(ev)){
+		case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
+			handle_event_tablet_tool_axis(ev, w);
+			break;
+		default:
+			handle_event_pointer_axis(ev, w);
+			break;
 	}
 }
 
@@ -1819,6 +1856,7 @@ handle_event_libinput(GIOChannel *source, GIOCondition condition, gpointer data)
 		case LIBINPUT_EVENT_POINTER_SCROLL_WHEEL:
 		case LIBINPUT_EVENT_POINTER_SCROLL_FINGER:
 		case LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS:
+		case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
 			handle_event_axis(ev, w);
 			break;
 		case LIBINPUT_EVENT_POINTER_BUTTON:

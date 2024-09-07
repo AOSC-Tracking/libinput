@@ -3185,6 +3185,9 @@ litest_event_type_str(enum libinput_event_type type)
 	case LIBINPUT_EVENT_TABLET_TOOL_BUTTON:
 		str = "TABLET TOOL BUTTON";
 		break;
+	case LIBINPUT_EVENT_TABLET_TOOL_SCROLL_CONTINUOUS:
+		str = "TABLET TOOL SCROLL CONTINOUS";
+		break;
 	case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
 		str = "TABLET PAD BUTTON";
 		break;
