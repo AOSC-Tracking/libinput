@@ -130,6 +130,10 @@ Set the rotation angle in degrees (0 to 360).
 .TP 8
 .B \-\-set\-pressure\-range=<min>:<max>
 Set the tablet tool pressure range to min:max. min and max must be in range [0.0, 1.0].
+.TP 8
+.B \-\-set\-area="x1/y1 x2/y2"
+Set the tablet area to the rectangle described by the two points x1/y1 and x2/y2. All
+coordinates must be in the range [0.0, 1.0].
 .SH NOTES
 .PP
 Events shown by this tool may not correspond to the events seen by a
