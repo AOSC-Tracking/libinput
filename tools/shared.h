@@ -32,6 +32,8 @@
 
 #define EXIT_INVALID_USAGE 2
 
+extern uint32_t log_serial;
+
 enum configuration_options {
 	OPT_TAP_ENABLE = 256,
 	OPT_TAP_DISABLE,
@@ -66,6 +68,7 @@ enum configuration_options {
 	OPT_ROTATION_ANGLE,
 	OPT_PRESSURE_RANGE,
 	OPT_CALIBRATION,
+	OPT_3FG_DRAG,
 };
 
 #define CONFIGURATION_OPTIONS \
@@ -101,7 +104,8 @@ enum configuration_options {
 	{ "set-custom-type",           required_argument, 0, OPT_CUSTOM_TYPE },\
 	{ "set-rotation-angle",        required_argument, 0, OPT_ROTATION_ANGLE }, \
 	{ "set-pressure-range",        required_argument, 0, OPT_PRESSURE_RANGE }, \
-	{ "set-calibration",           required_argument, 0, OPT_CALIBRATION }
+	{ "set-calibration",           required_argument, 0, OPT_CALIBRATION }, \
+	{ "enable-3fg-drag",           required_argument, 0, OPT_3FG_DRAG }
 
 enum tools_backend {
 	BACKEND_NONE,
@@ -136,6 +140,7 @@ struct tools_options {
 	unsigned int angle;
 	double pressure_range[2];
 	float calibration[6];
+	enum libinput_config_3fg_drag_state drag_3fg;
 };
 
 void tools_init_options(struct tools_options *options);

@@ -1911,6 +1911,7 @@ tp_handle_state(struct tp_dispatch *tp,
 
 	tp_clickpad_middlebutton_apply_config(tp->device);
 	tp_apply_rotation(tp->device);
+	tp_3fg_drag_apply_config(tp->device);
 }
 
 LIBINPUT_UNUSED

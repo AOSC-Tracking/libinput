@@ -45,6 +45,7 @@
 #include "util-strings.h"
 
 static uint32_t dispatch_counter = 0;
+uint32_t log_serial = 0;
 
 void
 tools_dispatch(struct libinput *libinput)
@@ -94,6 +95,8 @@ log_handler(struct libinput *li,
 
 	if (is_tty)
 		printf(ANSI_NORMAL);
+
+	log_serial++;
 }
 
 void
@@ -125,6 +128,7 @@ tools_init_options(struct tools_options *options)
 	options->pressure_range[1] = 1.0;
 	options->calibration[0] = 1.0;
 	options->calibration[4] = 1.0;
+	options->drag_3fg = -1;
 }
 
 int
@@ -383,6 +387,21 @@ tools_parse_option(int option,
 		free(matrix);
 		break;
 		}
+	case OPT_3FG_DRAG:
+		if (!optarg)
+			return 1;
+		if (streq(optarg, "3fg"))
+			options->drag_3fg = LIBINPUT_CONFIG_3FG_DRAG_ENABLED_3FG;
+		else if (streq(optarg, "4fg"))
+			options->drag_3fg = LIBINPUT_CONFIG_3FG_DRAG_ENABLED_4FG;
+		else if (streq(optarg, "disabled"))
+			options->drag_3fg = LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
+		else {
+			fprintf(stderr, "Invalid --enable-3fg-drag\n"
+			                "Valid options: 3fg|4fg|disabled\n");
+			return 1;
+		}
+		break;
 	}
 	return 0;
 }
@@ -598,6 +617,10 @@ tools_device_apply_config(struct libinput_device *device,
 
 	if (libinput_device_config_calibration_has_matrix(device))
 		libinput_device_config_calibration_set_matrix(device, options->calibration);
+
+	if (options->drag_3fg != (enum libinput_config_3fg_drag_state)-1 &&
+	    libinput_device_config_3fg_drag_get_finger_count(device) >= 3)
+		libinput_device_config_3fg_drag_set_enabled(device, options->drag_3fg);
 }
 
 void
