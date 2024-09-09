@@ -1426,23 +1426,7 @@ tp_tap_config_is_enabled(struct libinput_device *device)
 static enum libinput_config_tap_state
 tp_tap_default(struct evdev_device *evdev)
 {
-	/**
-	 * If we don't have a left button we must have tapping enabled by
-	 * default.
-	 */
-	if (!libevdev_has_event_code(evdev->evdev, EV_KEY, BTN_LEFT))
-		return LIBINPUT_CONFIG_TAP_ENABLED;
-
-	/**
-	 * Tapping is disabled by default for two reasons:
-	 * * if you don't know that tapping is a thing (or enabled by
-	 *   default), you get spurious mouse events that make the desktop
-	 *   feel buggy.
-	 * * if you do know what tapping is and you want it, you
-	 *   usually know where to enable it, or at least you can search for
-	 *   it.
-	 */
-	return LIBINPUT_CONFIG_TAP_DISABLED;
+	return LIBINPUT_CONFIG_TAP_ENABLED;
 }
 
 static enum libinput_config_tap_state
