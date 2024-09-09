@@ -1764,7 +1764,9 @@ tp_3fg_drag_get_enabled(struct libinput_device *device)
 static enum libinput_config_3fg_drag_state
 tp_3fg_drag_default(struct tp_dispatch *tp)
 {
-	return LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
+	//return LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
+	// FIXME: Remove this before merging
+	return LIBINPUT_CONFIG_3FG_DRAG_ENABLED_3FG;
 }
 
 static enum libinput_config_3fg_drag_state
