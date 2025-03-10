@@ -876,6 +876,7 @@ if get_option('tests')
 		dep_lm,
 		dep_libsystemd,
 		dep_libquirks,
+		dep_libinput_util_libinput,
 	]
 
 	litest_config_h = configuration_data()
