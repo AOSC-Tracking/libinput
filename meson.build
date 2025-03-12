@@ -353,6 +353,8 @@ else
 endif
 
 ############ libinput.so ############
+config_h.set10('EVENT_DEBUGGING', get_option('internal-event-debugging'))
+
 install_headers('src/libinput.h')
 src_libinput = src_libfilter + [
 	'src/libinput.c',
