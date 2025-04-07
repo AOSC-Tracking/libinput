@@ -70,7 +70,6 @@
 #define etrace(...) _trace(stderr, __VA_ARGS__)
 
 #define LIBINPUT_EXPORT __attribute__ ((visibility("default")))
-#define LIBINPUT_UNUSED __attribute__ ((unused))
 
 /* Commonly-used cleanup  */
 #ifdef udev_list_entry_foreach
