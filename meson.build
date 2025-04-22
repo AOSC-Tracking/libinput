@@ -2,7 +2,7 @@ project('libinput', 'c',
 	version : '1.29.0',
 	license : 'MIT/Expat',
 	default_options : [ 'c_std=gnu99', 'warning_level=2' ],
-	meson_version : '>= 0.56.0')
+	meson_version : '>= 0.64.0')
 
 libinput_version = meson.project_version().split('.')
 
@@ -168,7 +168,21 @@ dep_libevdev = dependency('libevdev', version: '>= 1.10.0')
 dep_lm = cc.find_library('m', required : false)
 dep_rt = cc.find_library('rt', required : false)
 
-config_h.set10('HAVE_PLUGINS', true)
+dep_lua = dependency('lua-5.4', 'lua5.4', 'lua',
+		     version : '>= 5.4',
+		     required : get_option('lua-plugins'))
+have_lua = dep_lua.found()
+config_h.set10('HAVE_LUA', have_lua)
+
+have_plugins =  dep_lua.found()
+config_h.set10('HAVE_PLUGINS', have_plugins)
+
+summary({
+	'Plugins enabled' : have_plugins,
+	'Lua Plugin support' : have_lua,
+	},
+	section : 'Plugins',
+	bool_yn : true)
 
 # Include directories
 includes_include = include_directories('include')
@@ -417,8 +431,15 @@ src_libinput = src_libfilter + [
 	'src/timer.c',
 	'src/util-libinput.c',
 ]
+
 if have_mtdev
 	src_libinput += ['src/libinput-plugin-mtdev.c']
+endif
+
+if dep_lua.found()
+	src_libinput += [
+		'src/libinput-plugin-lua.c',
+	]
 endif
 
 deps_libinput = [
@@ -430,7 +451,8 @@ deps_libinput = [
 	dep_rt,
 	dep_libwacom,
 	dep_libinput_util,
-	dep_libquirks
+	dep_libquirks,
+	dep_lua,
 ]
 
 libinput_version_h_config = configuration_data()
@@ -478,6 +500,8 @@ git_version_h = vcs_tag(command : ['git', 'describe'],
 			fallback : 'unknown',
 			input : 'src/libinput-git-version.h.in',
 			output :'libinput-git-version.h')
+
+subdir('plugins')
 
 ############ documentation ############
 
@@ -1024,6 +1048,10 @@ if get_option('tests')
 		'test/test-switch.c',
 		'test/test-quirks.c',
 	]
+	if have_plugins and have_lua
+		tests_sources += ['test/test-plugins-lua.c']
+	endif
+
 	libinput_test_runner_sources = litest_sources + tests_sources
 	libinput_test_runner = executable('libinput-test-suite',
 					  libinput_test_runner_sources,
@@ -1065,6 +1093,9 @@ if get_option('tests')
 		'trackpoint',
 		'udev',
 	]
+	if have_plugins and have_lua
+		collections += ['lua']
+	endif
 
 	foreach group : collections
 		test('libinput-test-suite-@0@'.format(group),
