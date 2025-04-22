@@ -335,7 +335,7 @@ src_libfilter = [
 		'src/filter-trackpoint-flat.c',
 ]
 libfilter = static_library('filter', src_libfilter,
-			   dependencies : [dep_udev, dep_libwacom],
+			   dependencies : [dep_udev, dep_libwacom, dep_libevdev],
 			   include_directories : includes_include)
 dep_libfilter = declare_dependency(link_with : libfilter)
 
@@ -374,6 +374,7 @@ config_h.set10('EVENT_DEBUGGING', get_option('internal-event-debugging'))
 install_headers('src/libinput.h')
 src_libinput = src_libfilter + [
 	'src/libinput.c',
+	'src/libinput-plugin.c',
 	'src/libinput-private-config.c',
 	'src/evdev.c',
 	'src/evdev-debounce.c',
