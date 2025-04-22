@@ -168,6 +168,8 @@ dep_libevdev = dependency('libevdev', version: '>= 1.10.0')
 dep_lm = cc.find_library('m', required : false)
 dep_rt = cc.find_library('rt', required : false)
 
+config_h.set10('HAVE_PLUGINS', true)
+
 # Include directories
 includes_include = include_directories('include')
 includes_src = include_directories('src')
@@ -380,6 +382,9 @@ endif
 if get_option('internal-event-debugging')
 	config_h.set('EVENT_DEBUGGING', 1)
 endif
+
+config_h.set_quoted('LIBINPUT_PLUGIN_LIBDIR', dir_lib / 'libinput' / 'plugins')
+config_h.set_quoted('LIBINPUT_PLUGIN_ETCDIR', dir_etc / 'libinput' / 'plugins')
 
 install_headers('src/libinput.h')
 src_libinput = src_libfilter + [
