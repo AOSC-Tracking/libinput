@@ -494,6 +494,9 @@ struct libinput_device {
 	void *user_data;
 	int refcount;
 	struct libinput_device_config config;
+
+	void (*inject_evdev_frame)(struct libinput_device *device,
+				   struct evdev_frame *frame);
 };
 
 enum libinput_tablet_tool_axis {
