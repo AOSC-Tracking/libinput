@@ -163,7 +163,7 @@ config_h.set10('HAVE_INSTALLED_TESTS', get_option('install-tests'))
 pkgconfig = import('pkgconfig')
 dep_udev = dependency('libudev')
 dep_mtdev = dependency('mtdev', version : '>= 1.1.0')
-dep_libevdev = dependency('libevdev')
+dep_libevdev = dependency('libevdev', version: '>= 1.9.0')
 config_h.set10('HAVE_LIBEVDEV_DISABLE_PROPERTY',
 		dep_libevdev.version().version_compare('>= 1.9.902'))
 
