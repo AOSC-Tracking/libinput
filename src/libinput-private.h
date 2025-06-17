@@ -495,6 +495,8 @@ struct libinput_device {
 	int refcount;
 	struct libinput_device_config config;
 
+	bitmask_t plugin_frame_callbacks;
+
 	void (*inject_evdev_frame)(struct libinput_device *device,
 				   struct evdev_frame *frame);
 };
