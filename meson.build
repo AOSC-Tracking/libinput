@@ -162,7 +162,6 @@ config_h.set10('HAVE_INSTALLED_TESTS', get_option('install-tests'))
 # Dependencies
 pkgconfig = import('pkgconfig')
 dep_udev = dependency('libudev')
-dep_mtdev = dependency('mtdev', version : '>= 1.1.0')
 dep_libevdev = dependency('libevdev', version: '>= 1.10.0')
 
 dep_lm = cc.find_library('m', required : false)
@@ -171,6 +170,16 @@ dep_rt = cc.find_library('rt', required : false)
 # Include directories
 includes_include = include_directories('include')
 includes_src = include_directories('src')
+
+############ mtdev configuration ############
+
+have_mtdev = get_option('mtdev')
+config_h.set10('HAVE_MTDEV', have_mtdev)
+if have_mtdev
+	dep_mtdev = dependency('mtdev', version : '>= 1.1.0')
+else
+	dep_mtdev = declare_dependency()
+endif
 
 ############ libwacom configuration ############
 
@@ -399,6 +408,9 @@ src_libinput = src_libfilter + [
 	'src/timer.c',
 	'src/util-libinput.c',
 ]
+if have_mtdev
+	src_libinput += ['src/libinput-plugin-mtdev.c']
+endif
 
 deps_libinput = [
 	dep_mtdev,
@@ -834,7 +846,6 @@ if get_option('tests')
 		'test/litest-device-mouse-wheel-click-count.c',
 		'test/litest-device-ms-nano-transceiver-mouse.c',
 		'test/litest-device-ms-surface-cover.c',
-		'test/litest-device-protocol-a-touch-screen.c',
 		'test/litest-device-qemu-usb-tablet.c',
 		'test/litest-device-sony-vaio-keys.c',
 		'test/litest-device-synaptics-x220.c',
@@ -891,6 +902,12 @@ if get_option('tests')
 		'test/litest.c',
 		'test/litest-main.c',
 	]
+
+	if have_mtdev
+		litest_sources += [
+			'test/litest-device-protocol-a-touch-screen.c',
+		]
+	endif
 
 	dep_dl = cc.find_library('dl')
 	deps_litest = [
