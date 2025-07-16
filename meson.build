@@ -1044,7 +1044,7 @@ if get_option('tests')
 		     suite : ['all', 'valgrind', 'root', 'hardware'],
 		     args : ['--filter-group=@0@'.format(group)],
 		     is_parallel : false,
-		     timeout : 1200)
+		     timeout : 1100)
         endforeach
 
 	test('libinput-test-deviceless',
@@ -1064,7 +1064,7 @@ if get_option('tests')
 						'--error-exitcode=3',
 						'--suppressions=' + valgrind_suppressions_file ],
 				env :  valgrind_env,
-				timeout_multiplier : 100)
+				timeout_multiplier : 3)
 	else
 		message('valgrind not found, disabling valgrind test suite')
 	endif
